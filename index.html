@@ -225,9 +225,19 @@
                 <input type="text" id="map-search-input" placeholder="Cerca una località da aggiungere...">
                 <button type="button" id="map-search-btn">Cerca</button>
               </div>
+
+              <!-- Controllo GPS in tempo reale -->
+              <div class="gps-tracking-container" style="margin-bottom: 15px; display: flex; align-items: center; gap: 12px; flex-wrap: wrap;">
+                <button type="button" id="btn-gps-track" class="btn-gps" style="flex-grow: 1;">
+                  <i class="fas fa-location-arrow"></i> <span>Avvia Registrazione GPS</span>
+                </button>
+                <div id="gps-status-indicator" class="gps-status-text" style="display: none; font-size: 13px; color: var(--accent-coral); font-weight: 500; align-items: center; gap: 8px;">
+                  <span class="rec-dot"></span> REGISTRAZIONE ATTIVA
+                </div>
+              </div>
               
               <p style="font-size: 13px; color: var(--text-secondary); margin-bottom: 12px;">
-                <i class="fas fa-info-circle" style="color: var(--accent-blue);"></i> Clicca direttamente sulla mappa per inserire punti o usa la barra di ricerca. Verranno collegati nell'ordine inserito.
+                <i class="fas fa-info-circle" style="color: var(--accent-blue);"></i> Clicca direttamente sulla mappa per inserire punti, usa la barra di ricerca o avvia il GPS per registrare la tua posizione reale.
               </p>
 
               <!-- Div Contenitore Mappa Leaflet -->

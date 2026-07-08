@@ -1558,3 +1558,60 @@ header {
   font-size: 14px;
   font-weight: 500;
 }
+
+/* ==========================================================================
+   STILI PER IL TRACCIAMENTO GPS
+   ========================================================================== */
+.btn-gps {
+  background-color: rgba(59, 130, 246, 0.1);
+  border: 1px solid var(--accent-blue);
+  color: var(--text-primary);
+  padding: 10px 16px;
+  border-radius: var(--border-radius-sm);
+  font-size: 14px;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  transition: var(--transition-fast);
+}
+
+.btn-gps:hover {
+  background-color: rgba(59, 130, 246, 0.2);
+  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.25);
+}
+
+.btn-gps.active {
+  background-color: rgba(244, 63, 94, 0.15);
+  border-color: var(--accent-coral);
+  color: var(--accent-coral);
+  box-shadow: 0 4px 12px rgba(244, 63, 94, 0.2);
+}
+
+.rec-dot {
+  width: 10px;
+  height: 10px;
+  background-color: var(--accent-coral);
+  border-radius: 50%;
+  display: inline-block;
+  animation: recPulse 1.2s infinite ease-in-out;
+}
+
+@keyframes recPulse {
+  0% {
+    transform: scale(0.8);
+    opacity: 0.5;
+    box-shadow: 0 0 0 0 rgba(244, 63, 94, 0.7);
+  }
+  70% {
+    transform: scale(1.1);
+    opacity: 1;
+    box-shadow: 0 0 0 6px rgba(244, 63, 94, 0);
+  }
+  100% {
+    transform: scale(0.8);
+    opacity: 0.5;
+    box-shadow: 0 0 0 0 rgba(244, 63, 94, 0);
+  }
+}

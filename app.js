@@ -25,6 +25,10 @@
   // Foto in caricamento (Base64)
   let uploadedPhotoBase64 = null;
 
+  // Stato tracciamento GPS in tempo reale
+  let gpsWatchId = null;
+  let lastGpsCoords = null;
+
   // === RIFERIMENTI ELEMENTI DOM ===
   const views = {
     login: document.getElementById("login-view"),
@@ -63,6 +67,8 @@
   const mapSearchBtn = document.getElementById("map-search-btn");
   const routePlaceholder = document.getElementById("route-placeholder");
   const routeItemsList = document.getElementById("route-items-list");
+  const btnGpsTrack = document.getElementById("btn-gps-track");
+  const gpsStatusIndicator = document.getElementById("gps-status-indicator");
   
   // Elementi Feed e Filtri
   const itineraryGrid = document.getElementById("itinerary-grid");
@@ -262,6 +268,9 @@
         searchLocationOnMap();
       }
     });
+
+    // Form - Tracciamento GPS in tempo reale
+    btnGpsTrack.addEventListener("click", toggleGPSTracking);
 
     // Form - Invio salvataggio itinerario
     createForm.addEventListener("submit", function(e) {
@@ -601,6 +610,131 @@
     });
   }
 
+  // Attiva/disattiva tracciamento GPS in tempo reale
+  function toggleGPSTracking() {
+    if (gpsWatchId) {
+      // Disattiva il tracciamento
+      navigator.geolocation.clearWatch(gpsWatchId);
+      gpsWatchId = null;
+      lastGpsCoords = null;
+      
+      btnGpsTrack.classList.remove("active");
+      btnGpsTrack.querySelector("span").innerText = "Avvia Registrazione GPS";
+      btnGpsTrack.querySelector("i").className = "fas fa-location-arrow";
+      gpsStatusIndicator.style.display = "none";
+      showToast("Registrazione GPS interrotta", "success");
+    } else {
+      // Attiva il tracciamento
+      if (!navigator.geolocation) {
+        showToast("Il tuo browser non supporta la geolocalizzazione", "error");
+        return;
+      }
+
+      btnGpsTrack.querySelector("span").innerText = "Inizializzazione GPS...";
+      btnGpsTrack.querySelector("i").className = "fas fa-spinner fa-spin";
+
+      const options = {
+        enableHighAccuracy: true,
+        timeout: 10000,
+        maximumAge: 0
+      };
+
+      gpsWatchId = navigator.geolocation.watchPosition(
+        function(position) {
+          const lat = position.coords.latitude;
+          const lng = position.coords.longitude;
+          const accuracy = position.coords.accuracy;
+          
+          console.log(`GPS Aggiornato: Lat ${lat}, Lng ${lng}, Precisione ${accuracy}m`);
+
+          // Aggiorna interfaccia pulsante al primo segnale
+          if (btnGpsTrack.querySelector("i").classList.contains("fa-spinner")) {
+            btnGpsTrack.classList.add("active");
+            btnGpsTrack.querySelector("span").innerText = "Ferma Registrazione GPS";
+            btnGpsTrack.querySelector("i").className = "fas fa-stop";
+            gpsStatusIndicator.style.display = "inline-flex";
+            showToast("Tracciamento GPS attivo!", "success");
+          }
+
+          // Aggiungi punto se è il primo o se la distanza è > 20 metri dall'ultimo punto
+          let shouldAdd = false;
+          if (!lastGpsCoords) {
+            shouldAdd = true;
+          } else {
+            const distance = calculateDistance(lastGpsCoords.lat, lastGpsCoords.lng, lat, lng);
+            console.log(`Distanza dall'ultimo punto GPS: ${distance.toFixed(1)} metri`);
+            if (distance >= 20) {
+              shouldAdd = true;
+            }
+          }
+
+          if (shouldAdd) {
+            lastGpsCoords = { lat, lng };
+            const timeLabel = new Date().toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' });
+            
+            // Centra la mappa sulla nuova posizione
+            if (createMap) {
+              createMap.setView([lat, lng], 15);
+            }
+
+            // Reverse-geocoding per dare un nome alla tappa o usa un'etichetta predefinita
+            fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&zoom=14`, {
+              headers: { "Accept-Language": "it" }
+            })
+            .then(res => res.json())
+            .then(data => {
+              let label = `Tappa GPS (${timeLabel})`;
+              if (data && data.display_name) {
+                const addr = data.address;
+                label = (addr.road || addr.suburb || addr.city || addr.town || "Tappa GPS") + ` (${timeLabel})`;
+              }
+              addRoutePoint(lat, lng, label);
+            })
+            .catch(() => {
+              addRoutePoint(lat, lng, `Tappa GPS (${timeLabel})`);
+            });
+          }
+        },
+        function(error) {
+          console.error("Errore GPS: ", error);
+          let errorMsg = "Errore durante il recupero del segnale GPS";
+          if (error.code === error.PERMISSION_DENIED) {
+            errorMsg = "Permesso di geolocalizzazione negato dal browser";
+            // Ferma il tracciamento in caso di rifiuto permessi
+            if (gpsWatchId) {
+              navigator.geolocation.clearWatch(gpsWatchId);
+              gpsWatchId = null;
+              lastGpsCoords = null;
+              btnGpsTrack.classList.remove("active");
+              btnGpsTrack.querySelector("span").innerText = "Avvia Registrazione GPS";
+              btnGpsTrack.querySelector("i").className = "fas fa-location-arrow";
+              gpsStatusIndicator.style.display = "none";
+            }
+          }
+          showToast(errorMsg, "error");
+        },
+        options
+      );
+    }
+  }
+
+  // Calcola la distanza in metri tra due coordinate usando la formula dell'Haversine
+  function calculateDistance(lat1, lon1, lat2, lon2) {
+    const R = 6371e3; // Raggio della Terra in metri
+    const phi1 = lat1 * Math.PI / 180;
+    const phi2 = lat2 * Math.PI / 180;
+    const deltaPhi = (lat2 - lat1) * Math.PI / 180;
+    const deltaLambda = (lon2 - lon1) * Math.PI / 180;
+
+    const a = Math.sin(deltaPhi / 2) * Math.sin(deltaPhi / 2) +
+              Math.cos(phi1) * Math.cos(phi2) *
+              Math.sin(deltaLambda / 2) * Math.sin(deltaLambda / 2);
+              
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+
+    return R * c; // Distanza in metri
+  }
+
   // Aggiunge un punto al percorso
   function addRoutePoint(lat, lng, label) {
     const point = { lat, lng, label };
@@ -764,6 +898,17 @@
   function resetCreateForm() {
     createForm.reset();
     
+    // Ferma il tracciamento GPS se attivo
+    if (gpsWatchId) {
+      navigator.geolocation.clearWatch(gpsWatchId);
+      gpsWatchId = null;
+      lastGpsCoords = null;
+      btnGpsTrack.classList.remove("active");
+      btnGpsTrack.querySelector("span").innerText = "Avvia Registrazione GPS";
+      btnGpsTrack.querySelector("i").className = "fas fa-location-arrow";
+      gpsStatusIndicator.style.display = "none";
+    }
+
     // Resetta mezzo selezionato
     transportOptions.forEach(o => o.classList.remove("selected"));
     selectedTransportInput.value = "";
