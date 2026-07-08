@@ -1,0 +1,421 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Itinera - Condividi i Tuoi Viaggi</title>
+  <meta name="description" content="Condividi i tuoi itinerari di viaggio preferiti. Traccia percorsi su mappe interattive, indica i mezzi usati, calcola i costi e carica le tue foto migliori.">
+  
+  <!-- FontAwesome Icone -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  
+  <!-- Leaflet CSS (Mappe) -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="">
+  
+  <!-- Foglio di Stile Personalizzato -->
+  <link rel="stylesheet" href="app.css">
+</head>
+<body>
+
+  <div id="app-container">
+    
+    <!-- ==========================================
+         HEADER / BARRA DI NAVIGAZIONE
+         ========================================== -->
+    <header>
+      <div class="logo" id="app-logo">
+        <i class="fas fa-compass"></i> Itinera
+      </div>
+      
+      <nav class="nav-links">
+        <button class="nav-btn active" id="nav-feed">
+          <i class="fas fa-globe"></i> Bacheca
+        </button>
+        <button class="nav-btn" id="nav-create">
+          <i class="fas fa-plus-circle"></i> Nuovo Viaggio
+        </button>
+        <button class="nav-btn" id="nav-profile">
+          <i class="fas fa-user-circle"></i> Profilo
+        </button>
+      </nav>
+      
+      <div class="user-profile-menu" id="user-profile-menu" style="display: none;">
+        <img src="" alt="Profilo" class="user-avatar" id="user-nav-avatar">
+        <button class="logout-btn" id="btn-logout">
+          <i class="fas fa-sign-out-alt"></i> Esci
+        </button>
+      </div>
+    </header>
+
+    <!-- ==========================================
+         PAGINA DI LOGIN
+         ========================================== -->
+    <main id="login-view" class="view-section active">
+      <div class="login-card">
+        <div class="login-logo">
+          <i class="fas fa-compass"></i> Itinera
+        </div>
+        <p class="login-subtitle">Traccia, calcola i costi e condividi le tue avventure nel mondo.</p>
+        
+        <!-- Google Sign-In button -->
+        <button class="google-btn" id="google-login-btn" type="button">
+          <i class="fab fa-google" style="color: #4285F4;"></i> Accedi con Google
+        </button>
+        
+        <div class="login-divider">
+          <span>OPPURE PROVA SUBITO IN LOCALE</span>
+        </div>
+        
+        <!-- Form di login locale mock -->
+        <div class="mock-login-form">
+          <div class="form-group-login">
+            <label for="mock-name">Nome Completo</label>
+            <input type="text" id="mock-name" placeholder="Es. Marco Polo" value="Marco Polo">
+          </div>
+          <div class="form-group-login">
+            <label for="mock-email">Indirizzo Gmail</label>
+            <input type="email" id="mock-email" placeholder="Es. marco.polo@gmail.com" value="marco.polo@gmail.com">
+          </div>
+          <button class="mock-signin-btn" id="mock-submit-btn" type="button">
+            Accedi come Ospite
+          </button>
+        </div>
+      </div>
+    </main>
+
+    <!-- ==========================================
+         BACHECA / FEED ITINERARI
+         ========================================== -->
+    <section id="feed-view" class="view-section">
+      <div class="page-header">
+        <h1 class="page-title">Esplora gli Itinerari<span>Ispirati per il tuo prossimo viaggio</span></h1>
+      </div>
+
+      <!-- Filtri e Ricerca -->
+      <div class="filter-bar">
+        <div class="search-box">
+          <i class="fas fa-search"></i>
+          <input type="text" id="search-input" placeholder="Cerca tappe, titoli o descrizioni di viaggio...">
+        </div>
+        
+        <div class="filter-group">
+          <button class="filter-btn active" data-filter="all">Tutti</button>
+          <button class="filter-btn" data-filter="auto"><i class="fas fa-car"></i> Auto</button>
+          <button class="filter-btn" data-filter="aereo"><i class="fas fa-plane"></i> Aereo</button>
+          <button class="filter-btn" data-filter="treno"><i class="fas fa-train"></i> Treno</button>
+          <button class="filter-btn" data-filter="moto"><i class="fas fa-motorcycle"></i> Moto</button>
+          <button class="filter-btn" data-filter="autobus"><i class="fas fa-bus"></i> Autobus</button>
+          <button class="filter-btn" data-filter="bicicletta"><i class="fas fa-bicycle"></i> Bici</button>
+          <button class="filter-btn" data-filter="piedi"><i class="fas fa-walking"></i> A Piedi</button>
+        </div>
+      </div>
+
+      <!-- Griglia Card Itinerari -->
+      <div class="itinerary-grid" id="itinerary-grid">
+        <!-- Generato Dinamicamente da JS -->
+      </div>
+    </section>
+
+    <!-- ==========================================
+         NUOVO VIAGGIO / FORM CREAZIONE
+         ========================================== -->
+    <section id="create-view" class="view-section">
+      <div class="page-header">
+        <h1 class="page-title">Condividi un Itinerario<span>Inserisci percorso, mezzo, costi e foto del tuo viaggio</span></h1>
+      </div>
+
+      <form id="itinerary-form">
+        <div class="create-grid">
+          
+          <!-- Pannello Sinistro: Modulo Dati -->
+          <div class="create-form-panel">
+            <h2 class="form-section-title"><i class="fas fa-info-circle"></i> Info Generali</h2>
+            
+            <div class="form-group">
+              <label for="itinerary-title">Titolo del Viaggio</label>
+              <input type="text" id="itinerary-title" placeholder="Es. Weekend romantico a Parigi o Avventura in Islanda" required>
+            </div>
+
+            <div class="form-row">
+              <div class="form-group">
+                <label for="itinerary-date">Data di Inizio</label>
+                <input type="date" id="itinerary-date" required>
+              </div>
+              <div class="form-group">
+                <label for="itinerary-duration">Durata (giorni)</label>
+                <input type="number" id="itinerary-duration" min="1" placeholder="Es. 3" required>
+              </div>
+            </div>
+
+            <div class="form-row">
+              <div class="form-group">
+                <label for="itinerary-cost">Costo Totale</label>
+                <input type="number" id="itinerary-cost" min="0" placeholder="Es. 250" required>
+              </div>
+              <div class="form-group">
+                <label for="itinerary-currency">Valuta</label>
+                <select id="itinerary-currency">
+                  <option value="EUR">EUR (€)</option>
+                  <option value="USD">USD ($)</option>
+                  <option value="GBP">GBP (£)</option>
+                </select>
+              </div>
+            </div>
+
+            <h2 class="form-section-title"><i class="fas fa-hiking"></i> Mezzo di Trasporto</h2>
+            <input type="hidden" id="selected-transport" required>
+            <div class="transport-selector">
+              <div class="transport-option" data-value="Auto">
+                <i class="fas fa-car"></i>
+                <span>Auto</span>
+              </div>
+              <div class="transport-option" data-value="Aereo">
+                <i class="fas fa-plane"></i>
+                <span>Aereo</span>
+              </div>
+              <div class="transport-option" data-value="Treno">
+                <i class="fas fa-train"></i>
+                <span>Treno</span>
+              </div>
+              <div class="transport-option" data-value="Moto">
+                <i class="fas fa-motorcycle"></i>
+                <span>Moto</span>
+              </div>
+              <div class="transport-option" data-value="Autobus">
+                <i class="fas fa-bus"></i>
+                <span>Autobus</span>
+              </div>
+              <div class="transport-option" data-value="Bicicletta">
+                <i class="fas fa-bicycle"></i>
+                <span>Bici</span>
+              </div>
+              <div class="transport-option" data-value="Piedi">
+                <i class="fas fa-walking"></i>
+                <span>A Piedi</span>
+              </div>
+            </div>
+
+            <h2 class="form-section-title"><i class="fas fa-camera"></i> Foto di Copertina</h2>
+            <div class="photo-upload-zone" onclick="document.getElementById('photo-file').click()">
+              <i class="fas fa-cloud-upload-alt"></i>
+              <p>Trascina una foto o clicca per caricare</p>
+              <input type="file" id="photo-file" accept="image/*" style="display: none;">
+              
+              <div class="photo-preview-container" id="preview-container">
+                <img src="" id="preview-img" alt="Anteprima">
+                <button type="button" class="photo-remove-btn" id="remove-photo-btn" title="Rimuovi foto">
+                  <i class="fas fa-times"></i>
+                </button>
+              </div>
+            </div>
+
+            <div class="form-group" style="margin-top: 24px;">
+              <label for="itinerary-desc">Racconta il tuo viaggio</label>
+              <textarea id="itinerary-desc" placeholder="Descrivi il percorso, i luoghi visitati, i pasti migliori, consigli per il budget, etc..." required></textarea>
+            </div>
+          </div>
+
+          <!-- Pannello Destro: Mappa e Tappe -->
+          <div class="map-panel">
+            <div class="map-card">
+              <h2 class="form-section-title"><i class="fas fa-map-marked-alt"></i> Traccia il Percorso</h2>
+              
+              <!-- Ricerca località sulla mappa -->
+              <div class="map-search-bar">
+                <input type="text" id="map-search-input" placeholder="Cerca una località da aggiungere...">
+                <button type="button" id="map-search-btn">Cerca</button>
+              </div>
+              
+              <p style="font-size: 13px; color: var(--text-secondary); margin-bottom: 12px;">
+                <i class="fas fa-info-circle" style="color: var(--accent-blue);"></i> Clicca direttamente sulla mappa per inserire punti o usa la barra di ricerca. Verranno collegati nell'ordine inserito.
+              </p>
+
+              <!-- Div Contenitore Mappa Leaflet -->
+              <div class="map-container" id="create-map-container"></div>
+            </div>
+
+            <div class="map-card">
+              <h2 class="form-section-title"><i class="fas fa-list-ol"></i> Tappe Inserite</h2>
+              <div class="route-list-container">
+                <div class="route-placeholder" id="route-placeholder">
+                  Nessuna tappa inserita. Clicca sulla mappa per iniziare a tracciare l'itinerario.
+                </div>
+                <div id="route-items-list">
+                  <!-- Generato Dinamicamente da JS -->
+                </div>
+              </div>
+            </div>
+          </div>
+
+        </div>
+
+        <!-- Pulsanti di Azione -->
+        <div class="form-actions">
+          <button type="button" class="btn-secondary" id="cancel-create-btn">Annulla</button>
+          <button type="submit" class="btn-primary" id="save-itinerary-btn">Condividi Itinerario</button>
+        </div>
+      </form>
+    </section>
+
+    <!-- ==========================================
+         PROFILO UTENTE
+         ========================================== -->
+    <section id="profile-view" class="view-section">
+      <div class="profile-card">
+        <img src="" alt="Avatar" class="profile-avatar-large" id="profile-avatar">
+        
+        <div class="profile-info-details">
+          <h2 class="profile-name" id="profile-name">Viaggiatore</h2>
+          <p class="profile-email" id="profile-email">viaggiatore@gmail.com</p>
+          
+          <div class="profile-stats">
+            <div class="profile-stat-box">
+              <div class="profile-stat-value" id="stat-trips">0</div>
+              <div class="profile-stat-label">Viaggi</div>
+            </div>
+            <div class="profile-stat-box">
+              <div class="profile-stat-value" id="stat-cost">0 €</div>
+              <div class="profile-stat-label">Spesa Totale</div>
+            </div>
+            <div class="profile-stat-box">
+              <div class="profile-stat-value" id="stat-days">0</div>
+              <div class="profile-stat-label">Giorni in Viaggio</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <h2 class="my-trips-title">I Miei Itinerari Inseriti</h2>
+      <div class="itinerary-grid" id="my-trips-grid">
+        <!-- Generato Dinamicamente da JS -->
+      </div>
+    </section>
+
+  </div> <!-- fine app-container -->
+
+  <!-- ==========================================
+       MODALE DETTAGLI VIAGGIO (ZOOM POPUP)
+       ========================================== -->
+  <div class="modal-backdrop" id="details-modal">
+    <div class="modal-wrapper">
+      <button class="modal-close-btn" id="modal-close-btn" title="Chiudi finestra">
+        <i class="fas fa-times"></i>
+      </button>
+      
+      <div class="modal-hero">
+        <img src="" id="modal-img" alt="Copertina">
+        <div class="modal-hero-overlay">
+          <div class="modal-hero-user">
+            <img src="" id="modal-user-avatar" alt="Avatar" class="modal-hero-avatar">
+            <span id="modal-user-name" class="modal-hero-username">Nome Utente</span>
+          </div>
+          <h2 class="modal-hero-title" id="modal-title">Titolo Viaggio</h2>
+        </div>
+      </div>
+      
+      <div class="modal-body">
+        <!-- Barra Parametri -->
+        <div class="modal-info-bar">
+          <div class="modal-info-item">
+            <div class="modal-info-val" id="modal-val-costo">0 €</div>
+            <div class="modal-info-lbl">Costo Totale</div>
+          </div>
+          <div class="modal-info-item">
+            <div class="modal-info-val" id="modal-val-mezzo">Auto</div>
+            <div class="modal-info-lbl">Mezzo di Trasporto</div>
+          </div>
+          <div class="modal-info-item">
+            <div class="modal-info-val" id="modal-val-durata">0 gg</div>
+            <div class="modal-info-lbl">Durata</div>
+          </div>
+          <div class="modal-info-item">
+            <div class="modal-info-val" id="modal-val-data">01/01/2026</div>
+            <div class="modal-info-lbl">Data Partenza</div>
+          </div>
+        </div>
+        
+        <!-- Griglia Dettaglio -->
+        <div class="modal-details-grid">
+          <div class="modal-desc-panel">
+            <h3>Diario di Viaggio</h3>
+            <p class="modal-desc-text" id="modal-desc">Descrizione del viaggio...</p>
+          </div>
+          
+          <div class="modal-map-panel">
+            <h3 class="modal-map-title"><i class="fas fa-map-marked-alt"></i> Mappa del Percorso</h3>
+            <!-- Div Contenitore Mappa Leaflet del Modale -->
+            <div class="modal-map-container" id="modal-map-container"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==========================================
+       SELETTORE GOOGLE ACCOUNT (MOCK OAUTH POPUP)
+       ========================================== -->
+  <div class="google-picker-backdrop" id="google-picker">
+    <div class="google-picker-card">
+      <div class="google-picker-header">
+        <!-- Logo Google Mock -->
+        <img src="https://upload.wikimedia.org/wikipedia/commons/2/2f/Google_2015_logo.svg" alt="Google Logo">
+        <h3>Scegli un account</h3>
+        <p>per accedere a <b>Itinera</b></p>
+      </div>
+      
+      <div class="google-account-list">
+        <div class="google-account-item" data-email="mario.rossi.viaggi@gmail.com" data-name="Mario Rossi">
+          <div class="google-account-avatar rossi">M</div>
+          <div class="google-account-details">
+            <span class="google-account-name">Mario Rossi</span>
+            <span class="google-account-email">mario.rossi.viaggi@gmail.com</span>
+          </div>
+        </div>
+        <div class="google-account-item" data-email="elisa.verdi.world@gmail.com" data-name="Elisa Verdi">
+          <div class="google-account-avatar verdi">E</div>
+          <div class="google-account-details">
+            <span class="google-account-name">Elisa Verdi</span>
+            <span class="google-account-email">elisa.verdi.world@gmail.com</span>
+          </div>
+        </div>
+        <div class="google-account-item" data-email="test.user.itinera@gmail.com" data-name="Test User">
+          <div class="google-account-avatar">T</div>
+          <div class="google-account-details">
+            <span class="google-account-name">Test User</span>
+            <span class="google-account-email">test.user.itinera@gmail.com</span>
+          </div>
+        </div>
+      </div>
+      
+      <div class="google-picker-footer">
+        Per continuare, Google condividerà il tuo nome, indirizzo email, preferenza per la lingua e foto del profilo con Itinera.
+      </div>
+    </div>
+  </div>
+
+  <!-- Notifiche Toast -->
+  <div id="toast-notification">
+    <i class="fas fa-check-circle"></i>
+    <span id="toast-text">Successo!</span>
+  </div>
+
+  <!-- ==========================================
+       LIBRERIE & SCRIPT (LONDATI VIA CDN COMPAT)
+       ========================================== -->
+  
+  <!-- Firebase Compat v10 SDKs (Richiesti se configurato in config.js) -->
+  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-storage-compat.js"></script>
+  
+  <!-- Leaflet JS (Mappe) -->
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+  
+  <!-- Logica dell'Applicazione -->
+  <script src="config.js"></script>
+  <script src="db.js"></script>
+  <script src="app.js"></script>
+
+</body>
+</html>
