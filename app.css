@@ -1615,3 +1615,356 @@ header {
     box-shadow: 0 0 0 0 rgba(244, 63, 94, 0);
   }
 }
+
+/* ==========================================================================
+   OFFLINE WARNING BANNER
+   ========================================================================== */
+.offline-banner {
+  background-color: var(--accent-amber);
+  color: #0b1329;
+  padding: 8px 24px;
+  font-size: 13px;
+  font-weight: 700;
+  text-align: center;
+  position: fixed;
+  top: 80px; /* Sotto l'header fisso */
+  left: 0;
+  right: 0;
+  z-index: 998;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 8px;
+  box-shadow: 0 4px 10px rgba(0,0,0,0.25);
+  animation: slideDown 0.3s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+}
+
+@keyframes slideDown {
+  from { transform: translateY(-100%); }
+  to { transform: translateY(0); }
+}
+
+/* Regolazione per le viste quando il banner offline è attivo */
+body.offline-active .view-section {
+  padding-top: 135px; /* Spazio extra per il banner offline */
+}
+
+/* ==========================================================================
+   DAY TABS / SCHEDE GIORNO
+   ========================================================================== */
+.day-tabs-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.day-tabs {
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  padding-bottom: 4px;
+}
+
+.day-tab {
+  background-color: rgba(255, 255, 255, 0.03);
+  border: 1px solid var(--glass-border);
+  color: var(--text-secondary);
+  padding: 8px 16px;
+  border-radius: var(--border-radius-sm);
+  font-size: 13px;
+  font-weight: 600;
+  white-space: nowrap;
+  transition: var(--transition-fast);
+}
+
+.day-tab:hover {
+  background-color: rgba(255, 255, 255, 0.08);
+  color: var(--text-primary);
+}
+
+.day-tab.active {
+  background-color: var(--accent-blue);
+  border-color: var(--accent-blue);
+  color: var(--text-primary);
+  box-shadow: 0 4px 10px rgba(59, 130, 246, 0.3);
+}
+
+.btn-add-day {
+  background-color: rgba(16, 185, 129, 0.1);
+  border: 1px solid rgba(16, 185, 129, 0.3);
+  color: var(--accent-emerald);
+  padding: 8px 14px;
+  border-radius: var(--border-radius-sm);
+  font-size: 13px;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  transition: var(--transition-fast);
+}
+
+.btn-add-day:hover {
+  background-color: rgba(16, 185, 129, 0.2);
+  transform: translateY(-1px);
+}
+
+.btn-remove-day {
+  background-color: rgba(244, 63, 94, 0.1);
+  border: 1px solid rgba(244, 63, 94, 0.3);
+  color: var(--accent-coral);
+  padding: 8px 14px;
+  border-radius: var(--border-radius-sm);
+  font-size: 13px;
+  font-weight: 600;
+  transition: var(--transition-fast);
+}
+
+.btn-remove-day:hover {
+  background-color: rgba(244, 63, 94, 0.2);
+}
+
+/* ==========================================================================
+   TIMELINE ATTIVITÀ
+   ========================================================================== */
+.activity-timeline {
+  position: relative;
+  border-left: 2px solid var(--bg-tertiary);
+  margin: 16px 0 16px 12px;
+  padding-left: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.activity-item {
+  position: relative;
+  background-color: rgba(255,255,255,0.01);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--border-radius-sm);
+  padding: 16px;
+  transition: var(--transition-fast);
+}
+
+.activity-item:hover {
+  border-color: rgba(255,255,255,0.12);
+  background-color: rgba(255,255,255,0.03);
+}
+
+.activity-node {
+  position: absolute;
+  left: -32px;
+  top: 18px;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background-color: var(--accent-blue);
+  border: 3px solid var(--bg-primary);
+  box-shadow: 0 0 8px rgba(59, 130, 246, 0.5);
+}
+
+.activity-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 6px;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.activity-time {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--accent-teal);
+  background-color: rgba(13, 148, 136, 0.1);
+  padding: 2px 8px;
+  border-radius: 12px;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.activity-title {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.activity-desc {
+  font-size: 13px;
+  color: var(--text-secondary);
+  font-weight: 300;
+  line-height: 1.4;
+}
+
+.activity-meta {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 10px;
+  border-top: 1px solid rgba(255,255,255,0.03);
+  padding-top: 8px;
+}
+
+.activity-cost {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--accent-emerald);
+}
+
+.btn-remove-activity {
+  color: var(--text-muted);
+  font-size: 13px;
+  transition: var(--transition-fast);
+}
+
+.btn-remove-activity:hover {
+  color: var(--accent-coral);
+}
+
+/* ==========================================================================
+   RISTORANTI E STELLE
+   ========================================================================== */
+.star-rating-select {
+  display: flex;
+  gap: 8px;
+  font-size: 22px;
+  color: var(--text-muted);
+  cursor: pointer;
+  margin: 6px 0;
+}
+
+.star-rating-select i {
+  transition: transform 0.15s ease;
+}
+
+.star-rating-select i:hover {
+  transform: scale(1.2);
+}
+
+.star-rating-select i.active {
+  color: var(--accent-amber);
+}
+
+.stars-display {
+  color: var(--accent-amber);
+  display: flex;
+  gap: 3px;
+}
+
+.restaurant-card {
+  background-color: rgba(255, 255, 255, 0.02);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--border-radius-sm);
+  padding: 18px;
+  margin-bottom: 16px;
+  position: relative;
+  transition: var(--transition-fast);
+}
+
+.restaurant-card:hover {
+  border-color: rgba(255,255,255,0.12);
+  background-color: rgba(255,255,255,0.04);
+}
+
+.restaurant-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 8px;
+}
+
+.restaurant-title {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.restaurant-review {
+  font-size: 13px;
+  color: var(--text-secondary);
+  font-style: italic;
+  line-height: 1.4;
+  font-weight: 300;
+  margin-top: 6px;
+}
+
+.restaurant-meta {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 12px;
+  border-top: 1px solid rgba(255,255,255,0.03);
+  padding-top: 8px;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.restaurant-cost {
+  color: var(--accent-emerald);
+}
+
+/* ==========================================================================
+   PERCORSI ED OSRM TIME BADGES
+   ========================================================================== */
+.route-time-badge {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  background-color: rgba(59, 130, 246, 0.08);
+  border: 1px solid rgba(59, 130, 246, 0.15);
+  color: var(--accent-blue);
+  font-size: 11px;
+  font-weight: 700;
+  padding: 4px 10px;
+  border-radius: 12px;
+  margin: 10px auto;
+  width: fit-content;
+}
+
+/* Stile per i controlli layer di Leaflet per abbinarsi al tema scuro */
+.leaflet-control-layers {
+  background: var(--glass-bg) !important;
+  color: var(--text-primary) !important;
+  border: 1px solid var(--glass-border) !important;
+  font-family: var(--font-sans) !important;
+  border-radius: var(--border-radius-sm) !important;
+  box-shadow: 0 4px 15px rgba(0,0,0,0.5) !important;
+  font-size: 12px !important;
+}
+
+.leaflet-control-layers label {
+  cursor: pointer;
+  padding: 3px 6px;
+  display: block;
+}
+
+.leaflet-control-layers-separator {
+  border-top: 1px solid var(--glass-border) !important;
+}
+
+.leaflet-bar a {
+  background-color: var(--glass-bg) !important;
+  color: var(--text-primary) !important;
+  border-bottom: 1px solid var(--glass-border) !important;
+  transition: var(--transition-fast) !important;
+}
+
+.leaflet-bar a:hover {
+  background-color: rgba(255, 255, 255, 0.1) !important;
+}
+
+.leaflet-container a.leaflet-popup-close-button {
+  color: var(--text-muted) !important;
+}
+
+.leaflet-popup-content-wrapper, .leaflet-popup-tip {
+  background: var(--bg-secondary) !important;
+  color: var(--text-primary) !important;
+  border: 1px solid var(--glass-border) !important;
+  font-family: var(--font-sans) !important;
+}
+

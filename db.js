@@ -14,12 +14,12 @@ window.AppDB = (function() {
   const sampleItineraries = [
     {
       id: "sample-1",
-      title: "Road Trip in Costiera Amalfitana",
-      description: "Un viaggio indimenticabile lungo le scogliere campane, tra borghi arroccati e profumo di limoni. Abbiamo percorso la strada statale 163 fermandoci per esplorare a piedi le viuzze e gustare dell'ottimo pesce fresco.",
+      title: "Costiera Amalfitana in due giorni",
+      description: "Un viaggio indimenticabile lungo le scogliere campane, tra borghi storici, profumo di limoni e cibo eccezionale. Abbiamo esplorato a piedi i vicoletti di Amalfi e Positano e guidato lungo la panoramica statale 163.",
       mezzo: "Auto",
       costo: 350,
       valuta: "EUR",
-      durata: 4,
+      durata: 2,
       data: "2026-06-15",
       photo: "https://images.unsplash.com/photo-1533105079780-92b9be482077?auto=format&fit=crop&w=800&q=80",
       user: {
@@ -28,20 +28,62 @@ window.AppDB = (function() {
         email: "marco.polo@gmail.com",
         photoURL: "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=150&q=80"
       },
-      route: [
-        { lat: 40.6824, lng: 14.7681, label: "Salerno (Partenza)" },
-        { lat: 40.6331, lng: 14.6027, label: "Amalfi" },
-        { lat: 40.6281, lng: 14.4850, label: "Positano" },
-        { lat: 40.6762, lng: 14.3758, label: "Sorrento" }
+      days: [
+        {
+          dayNumber: 1,
+          route: [
+            { lat: 40.6824, lng: 14.7681, label: "Salerno (Partenza)" },
+            { lat: 40.6331, lng: 14.6027, label: "Amalfi", time: "35 min (22 km)" }
+          ],
+          gpsTrackPoints: [
+            { lat: 40.6824, lng: 14.7681 },
+            { lat: 40.6791, lng: 14.7432 },
+            { lat: 40.6654, lng: 14.7102 },
+            { lat: 40.6512, lng: 14.6781 },
+            { lat: 40.6402, lng: 14.6412 },
+            { lat: 40.6331, lng: 14.6027 }
+          ],
+          activities: [
+            { time: "11:00", title: "Visita al Duomo di Amalfi", description: "Meravigliosa cattedrale di Sant'Andrea con il suo Chiostro del Paradiso in stile moresco.", costo: 6, valuta: "EUR" },
+            { time: "15:30", title: "Giro in barca alla Grotta dello Smeraldo", description: "Escursione in barca per ammirare i riflessi verde smeraldo dell'acqua all'interno della grotta.", costo: 15, valuta: "EUR" }
+          ],
+          restaurants: [
+            { name: "Trattoria Da Gemma", review: "Pesce freschissimo e servizio impeccabile nel cuore di Amalfi. Gli scialatielli ai frutti di mare erano superlativi!", rating: 5, costo: 45, valuta: "EUR" }
+          ]
+        },
+        {
+          dayNumber: 2,
+          route: [
+            { lat: 40.6331, lng: 14.6027, label: "Amalfi" },
+            { lat: 40.6281, lng: 14.4850, label: "Positano", time: "25 min (18 km)" },
+            { lat: 40.6762, lng: 14.3758, label: "Sorrento", time: "30 min (22 km)" }
+          ],
+          gpsTrackPoints: [
+            { lat: 40.6331, lng: 14.6027 },
+            { lat: 40.6251, lng: 14.5512 },
+            { lat: 40.6212, lng: 14.5121 },
+            { lat: 40.6281, lng: 14.4850 },
+            { lat: 40.6411, lng: 14.4421 },
+            { lat: 40.6591, lng: 14.4012 },
+            { lat: 40.6762, lng: 14.3758 }
+          ],
+          activities: [
+            { time: "10:30", title: "Shopping tra le viuzze di Positano", description: "Passeggiata tra i negozi di moda Positano e acquisto di sandali fatti a mano.", costo: 0, valuta: "EUR" },
+            { time: "18:00", title: "Tramonto a Sorrento", description: "Vista spettacolare del Golfo di Napoli e del Vesuvio sorseggiando un bicchiere di limoncello.", costo: 8, valuta: "EUR" }
+          ],
+          restaurants: [
+            { name: "Pizzeria Donna Stella", review: "Favolosa pizza napoletana servita all'aperto sotto un pergolato di limoni. Molto caratteristico!", rating: 5, costo: 22, valuta: "EUR" }
+          ]
+        }
       ],
       createdAt: new Date("2026-06-16T10:00:00Z").getTime()
     },
     {
       id: "sample-2",
       title: "Weekend in Bici nei Castelli Romani",
-      description: "Due giorni di pedalate intense tra i laghi vulcanici di Castel Gandolfo e Nemi. Salite impegnative ripagate da viste spettacolari e soste culinarie favolose nelle storiche fraschette.",
+      description: "Due giorni all'insegna dello sport e della buona cucina romana, pedalando tra i laghi vulcanici di Albano e Nemi con salite impegnative e discese mozzafiato.",
       mezzo: "Bicicletta",
-      costo: 60,
+      costo: 80,
       valuta: "EUR",
       durata: 2,
       data: "2026-07-02",
@@ -52,14 +94,52 @@ window.AppDB = (function() {
         email: "sofia.rossi@gmail.com",
         photoURL: "https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=150&q=80"
       },
-      route: [
-        { lat: 41.7454, lng: 12.6508, label: "Castel Gandolfo" },
-        { lat: 41.7225, lng: 12.7176, label: "Nemi" },
-        { lat: 41.8080, lng: 12.6789, label: "Frascati" }
+      days: [
+        {
+          dayNumber: 1,
+          route: [
+            { lat: 41.7454, lng: 12.6508, label: "Castel Gandolfo" },
+            { lat: 41.7225, lng: 12.7176, label: "Nemi", time: "40 min (10 km)" }
+          ],
+          gpsTrackPoints: [
+            { lat: 41.7454, lng: 12.6508 },
+            { lat: 41.7391, lng: 12.6712 },
+            { lat: 41.7299, lng: 12.6954 },
+            { lat: 41.7225, lng: 12.7176 }
+          ],
+          activities: [
+            { time: "09:30", title: "Canoa sul Lago di Albano", description: "Un'ora di noleggio canoa per esplorare le rive tranquille del lago vulcanico.", costo: 12, valuta: "EUR" },
+            { time: "16:00", title: "Trekking nei boschi di Nemi", description: "Passeggiata rilassante immersi nella natura lungo il sentiero del Tempio di Diana.", costo: 0, valuta: "EUR" }
+          ],
+          restaurants: [
+            { name: "Antica Fraschetta di Nemi", review: "Porchetta deliziosa calda, formaggi locali e un ottimo vino rosso della casa. Prezzi super popolari e gestori simpaticissimi!", rating: 5, costo: 18, valuta: "EUR" }
+          ]
+        },
+        {
+          dayNumber: 2,
+          route: [
+            { lat: 41.7225, lng: 12.7176, label: "Nemi" },
+            { lat: 41.8080, lng: 12.6789, label: "Frascati", time: "50 min (15 km)" }
+          ],
+          gpsTrackPoints: [
+            { lat: 41.7225, lng: 12.7176 },
+            { lat: 41.7511, lng: 12.7092 },
+            { lat: 41.7821, lng: 12.6811 },
+            { lat: 41.8080, lng: 12.6789 }
+          ],
+          activities: [
+            { time: "11:00", title: "Visita a Villa Aldobrandini", description: "Passeggiata nei magnifici giardini monumentali all'italiana che sovrastano la città di Frascati.", costo: 0, valuta: "EUR" },
+            { time: "15:00", title: "Degustazione in cantina", description: "Tour guidato delle vigne con degustazione di Frascati Superiore DOCG e olio extravergine d'oliva.", costo: 25, valuta: "EUR" }
+          ],
+          restaurants: [
+            { name: "Osteria dell'Olmo", review: "Pasta cacio e pepe cremosa ed eccezionale servita in porzioni abbondanti. Atmosfera molto casereccia.", rating: 4, costo: 20, valuta: "EUR" }
+          ]
+        }
       ],
       createdAt: new Date("2026-07-03T18:30:00Z").getTime()
     }
   ];
+
 
   // Inizializza IndexedDB
   function initIndexedDB(callback) {

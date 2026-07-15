@@ -47,6 +47,13 @@
       </div>
     </header>
 
+    <!-- Banner di avviso offline -->
+    <div id="offline-warning-banner" class="offline-banner" style="display: none;">
+      <i class="fas fa-exclamation-triangle"></i>
+      <span><b>Modalità Locale:</b> I viaggi salvati sono visibili solo su questo dispositivo. <a href="#" id="banner-config-guide-btn" style="text-decoration: underline; color: inherit; font-weight: 800;">Configura Firebase</a> per condividerli online!</span>
+    </div>
+
+
     <!-- ==========================================
          PAGINA DI LOGIN
          ========================================== -->
@@ -124,10 +131,9 @@
         <h1 class="page-title">Condividi un Itinerario<span>Inserisci percorso, mezzo, costi e foto del tuo viaggio</span></h1>
       </div>
 
-      <form id="itinerary-form">
-        <div class="create-grid">
+      <form id="itinerary-form">        <div class="create-grid">
           
-          <!-- Pannello Sinistro: Modulo Dati -->
+          <!-- Pannello Sinistro: Modulo Dati e Diario -->
           <div class="create-form-panel">
             <h2 class="form-section-title"><i class="fas fa-info-circle"></i> Info Generali</h2>
             
@@ -143,13 +149,13 @@
               </div>
               <div class="form-group">
                 <label for="itinerary-duration">Durata (giorni)</label>
-                <input type="number" id="itinerary-duration" min="1" placeholder="Es. 3" required>
+                <input type="number" id="itinerary-duration" min="1" placeholder="Aggiungi giorni sotto" readonly style="background-color: rgba(255,255,255,0.02); color: var(--text-secondary); cursor: not-allowed;" value="1">
               </div>
             </div>
 
             <div class="form-row">
               <div class="form-group">
-                <label for="itinerary-cost">Costo Totale</label>
+                <label for="itinerary-cost">Budget Stimato (Totale)</label>
                 <input type="number" id="itinerary-cost" min="0" placeholder="Es. 250" required>
               </div>
               <div class="form-group">
@@ -162,7 +168,7 @@
               </div>
             </div>
 
-            <h2 class="form-section-title"><i class="fas fa-hiking"></i> Mezzo di Trasporto</h2>
+            <h2 class="form-section-title"><i class="fas fa-hiking"></i> Mezzo di Trasporto Principale</h2>
             <input type="hidden" id="selected-transport" required>
             <div class="transport-selector">
               <div class="transport-option" data-value="Auto">
@@ -210,15 +216,116 @@
             </div>
 
             <div class="form-group" style="margin-top: 24px;">
-              <label for="itinerary-desc">Racconta il tuo viaggio</label>
-              <textarea id="itinerary-desc" placeholder="Descrivi il percorso, i luoghi visitati, i pasti migliori, consigli per il budget, etc..." required></textarea>
+              <label for="itinerary-desc">Descrizione Generale del Viaggio</label>
+              <textarea id="itinerary-desc" placeholder="Descrivi l'idea del viaggio, a chi è consigliato e cosa ti è piaciuto di più in generale..." required></textarea>
             </div>
+
+            <!-- SEZIONE MULTI-GIORNO: PROGRAMMA -->
+            <h2 class="form-section-title" style="margin-top: 36px; border-bottom: 2px solid var(--accent-blue);"><i class="far fa-calendar-alt"></i> Programma Giornaliero</h2>
+            
+            <div class="day-tabs-header">
+              <div class="day-tabs" id="form-day-tabs">
+                <!-- Generato da JS: es. <button class="day-tab active">Giorno 1</button> -->
+              </div>
+              <div style="display: flex; gap: 8px;">
+                <button type="button" class="btn-add-day" id="btn-add-day-form" title="Aggiungi un giorno"><i class="fas fa-plus"></i> Giorno</button>
+                <button type="button" class="btn-remove-day" id="btn-remove-day-form" style="display: none;" title="Elimina l'ultimo giorno"><i class="fas fa-trash-alt"></i> Elimina Giorno</button>
+              </div>
+            </div>
+
+            <!-- Contenitore Attività del Giorno Corrente -->
+            <div class="day-details-edit-panel" style="background-color: rgba(255,255,255,0.01); border: 1px solid var(--glass-border); padding: 20px; border-radius: var(--border-radius-md);">
+              <h3 id="current-form-day-title" style="font-family: var(--font-serif); font-size: 20px; margin-bottom: 16px; color: var(--accent-blue);">Giorno 1: Dettagli</h3>
+
+              <!-- Sotto-modulo per inserire un'attività -->
+              <div style="background-color: rgba(255, 255, 255, 0.02); border: 1px solid var(--glass-border); padding: 16px; border-radius: var(--border-radius-sm); margin-bottom: 20px;">
+                <h4 style="font-size: 14px; font-weight: 600; color: var(--text-primary); margin-bottom: 12px;"><i class="fas fa-plus-circle"></i> Aggiungi Attività / Visita</h4>
+                <div class="form-row" style="margin-bottom: 10px;">
+                  <div class="form-group" style="margin-bottom: 0;">
+                    <label>Orario</label>
+                    <input type="time" id="act-time">
+                  </div>
+                  <div class="form-group" style="margin-bottom: 0;">
+                    <label>Titolo Attività</label>
+                    <input type="text" id="act-title" placeholder="Es. Visita al Colosseo">
+                  </div>
+                </div>
+                <div class="form-group" style="margin-bottom: 10px;">
+                  <label>Descrizione</label>
+                  <textarea id="act-desc" placeholder="Dettagli sull'attività, consigli, biglietti..." style="min-height: 60px;"></textarea>
+                </div>
+                <div class="form-row" style="margin-bottom: 12px;">
+                  <div class="form-group" style="margin-bottom: 0;">
+                    <label>Costo</label>
+                    <input type="number" id="act-cost" min="0" placeholder="0">
+                  </div>
+                  <div class="form-group" style="margin-bottom: 0;">
+                    <label>Valuta</label>
+                    <select id="act-currency">
+                      <option value="EUR">EUR (€)</option>
+                      <option value="USD">USD ($)</option>
+                    </select>
+                  </div>
+                </div>
+                <button type="button" class="btn-primary" id="btn-add-activity" style="width: 100%; padding: 10px; font-size: 13px; justify-content: center; display: flex; align-items: center; gap: 8px;">
+                  <i class="fas fa-plus"></i> Aggiungi Attività al Giorno
+                </button>
+              </div>
+
+              <!-- Lista Attività Aggiunte per il Giorno -->
+              <h4 style="font-size: 13px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; color: var(--text-secondary); margin-bottom: 12px;">Cronoprogramma Attività</h4>
+              <div class="activity-timeline" id="form-activities-list">
+                <!-- Popolato da JS -->
+              </div>
+
+              <hr style="border: none; border-top: 1px solid var(--glass-border); margin: 24px 0;">
+
+              <!-- Sotto-modulo per inserire un ristorante -->
+              <div style="background-color: rgba(255, 255, 255, 0.02); border: 1px solid var(--glass-border); padding: 16px; border-radius: var(--border-radius-sm); margin-bottom: 20px;">
+                <h4 style="font-size: 14px; font-weight: 600; color: var(--text-primary); margin-bottom: 12px;"><i class="fas fa-utensils"></i> Aggiungi Ristorante / Bar</h4>
+                <div class="form-row" style="margin-bottom: 10px;">
+                  <div class="form-group" style="margin-bottom: 0;">
+                    <label>Nome Ristorante</label>
+                    <input type="text" id="rest-name" placeholder="Es. Trattoria da Nello">
+                  </div>
+                  <div class="form-group" style="margin-bottom: 0;">
+                    <label>Voto (Stelle)</label>
+                    <div class="star-rating-select" id="form-star-rating">
+                      <i class="far fa-star" data-rating="1"></i>
+                      <i class="far fa-star" data-rating="2"></i>
+                      <i class="far fa-star" data-rating="3"></i>
+                      <i class="far fa-star" data-rating="4"></i>
+                      <i class="far fa-star" data-rating="5"></i>
+                    </div>
+                    <input type="hidden" id="rest-rating" value="0">
+                  </div>
+                </div>
+                <div class="form-group" style="margin-bottom: 10px;">
+                  <label>Commento / Recensione</label>
+                  <textarea id="rest-review" placeholder="Cosa hai mangiato? Recensione, atmosfera..." style="min-height: 60px;"></textarea>
+                </div>
+                <div class="form-group" style="margin-bottom: 12px;">
+                  <label>Spesa Stimata (€)</label>
+                  <input type="number" id="rest-cost" min="0" placeholder="Es. 25">
+                </div>
+                <button type="button" class="btn-primary" id="btn-add-restaurant" style="width: 100%; padding: 10px; font-size: 13px; justify-content: center; display: flex; align-items: center; gap: 8px; background: linear-gradient(135deg, var(--accent-teal) 0%, var(--accent-emerald) 100%); border: none; box-shadow: 0 4px 10px rgba(13, 148, 136, 0.25);">
+                  <i class="fas fa-plus"></i> Aggiungi Ristorante al Giorno
+                </button>
+              </div>
+
+              <!-- Lista Ristoranti Aggiunti per il Giorno -->
+              <h4 style="font-size: 13px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; color: var(--text-secondary); margin-bottom: 12px;">Ristoranti e Bar Visitati</h4>
+              <div id="form-restaurants-list">
+                <!-- Popolato da JS -->
+              </div>
+            </div>
+
           </div>
 
-          <!-- Pannello Destro: Mappa e Tappe -->
+          <!-- Pannello Destro: Mappa e Tappe (Associate al Giorno Selezionato) -->
           <div class="map-panel">
             <div class="map-card">
-              <h2 class="form-section-title"><i class="fas fa-map-marked-alt"></i> Traccia il Percorso</h2>
+              <h2 class="form-section-title" id="map-section-title-day"><i class="fas fa-map-marked-alt"></i> Traccia il Percorso - Giorno 1</h2>
               
               <!-- Ricerca località sulla mappa -->
               <div class="map-search-bar">
@@ -237,7 +344,7 @@
               </div>
               
               <p style="font-size: 13px; color: var(--text-secondary); margin-bottom: 12px;">
-                <i class="fas fa-info-circle" style="color: var(--accent-blue);"></i> Clicca direttamente sulla mappa per inserire punti, usa la barra di ricerca o avvia il GPS per registrare la tua posizione reale.
+                <i class="fas fa-info-circle" style="color: var(--accent-blue);"></i> Clicca sulla mappa o cerca località per aggiungere le tappe del <b>giorno corrente</b>. Le tratte stradali indicheranno le tempistiche e distanze reali.
               </p>
 
               <!-- Div Contenitore Mappa Leaflet -->
@@ -248,7 +355,7 @@
               <h2 class="form-section-title"><i class="fas fa-list-ol"></i> Tappe Inserite</h2>
               <div class="route-list-container">
                 <div class="route-placeholder" id="route-placeholder">
-                  Nessuna tappa inserita. Clicca sulla mappa per iniziare a tracciare l'itinerario.
+                  Nessuna tappa inserita per questo giorno. Clicca sulla mappa per iniziare a tracciare.
                 </div>
                 <div id="route-items-list">
                   <!-- Generato Dinamicamente da JS -->
@@ -263,7 +370,7 @@
         <div class="form-actions">
           <button type="button" class="btn-secondary" id="cancel-create-btn">Annulla</button>
           <button type="submit" class="btn-primary" id="save-itinerary-btn">Condividi Itinerario</button>
-        </div>
+        </div></div>
       </form>
     </section>
 
@@ -311,6 +418,9 @@
       <button class="modal-close-btn" id="modal-close-btn" title="Chiudi finestra">
         <i class="fas fa-times"></i>
       </button>
+      <button class="modal-close-btn" id="modal-share-btn" title="Condividi viaggio" style="right: 76px; background-color: rgba(59, 130, 246, 0.1); color: var(--accent-blue); border-color: rgba(59, 130, 246, 0.3);">
+        <i class="fas fa-share-alt"></i>
+      </button>
       
       <div class="modal-hero">
         <img src="" id="modal-img" alt="Copertina">
@@ -324,15 +434,15 @@
       </div>
       
       <div class="modal-body">
-        <!-- Barra Parametri -->
+        <!-- Barra Parametri Generali -->
         <div class="modal-info-bar">
           <div class="modal-info-item">
             <div class="modal-info-val" id="modal-val-costo">0 €</div>
-            <div class="modal-info-lbl">Costo Totale</div>
+            <div class="modal-info-lbl">Budget Stimato</div>
           </div>
           <div class="modal-info-item">
             <div class="modal-info-val" id="modal-val-mezzo">Auto</div>
-            <div class="modal-info-lbl">Mezzo di Trasporto</div>
+            <div class="modal-info-lbl">Mezzo Principale</div>
           </div>
           <div class="modal-info-item">
             <div class="modal-info-val" id="modal-val-durata">0 gg</div>
@@ -343,23 +453,85 @@
             <div class="modal-info-lbl">Data Partenza</div>
           </div>
         </div>
+
+        <!-- Presentazione / Diario Generale -->
+        <div style="background-color: rgba(255,255,255,0.02); border: 1px solid var(--glass-border); padding: 24px; border-radius: var(--border-radius-md); margin-bottom: 30px;">
+          <h3 style="font-family: var(--font-serif); font-size: 22px; margin-bottom: 10px; color: var(--text-primary);">Presentazione del Viaggio</h3>
+          <p class="modal-desc-text" id="modal-desc" style="margin-bottom: 0;">Descrizione...</p>
+        </div>
+
+        <!-- Selettore Giorno nel Modale -->
+        <div class="day-tabs-container" style="border-bottom: 1px solid var(--glass-border); padding-bottom: 12px; margin-bottom: 24px;">
+          <h4 style="font-size: 13px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; color: var(--text-secondary); margin-bottom: 12px;">Programma del Giorno:</h4>
+          <div class="day-tabs" id="modal-day-tabs">
+            <!-- Generato da JS: es. <button class="day-tab active">Giorno 1</button> -->
+          </div>
+        </div>
         
-        <!-- Griglia Dettaglio -->
+        <!-- Griglia Dettaglio Giorno Selezionato -->
         <div class="modal-details-grid">
-          <div class="modal-desc-panel">
-            <h3>Diario di Viaggio</h3>
-            <p class="modal-desc-text" id="modal-desc">Descrizione del viaggio...</p>
+          
+          <!-- Pannello Sinistro: Attività e Ristoranti del giorno -->
+          <div>
+            <!-- Timeline Attività -->
+            <div id="modal-activities-panel" style="margin-bottom: 30px;">
+              <h3 style="font-family: var(--font-serif); font-size: 20px; margin-bottom: 16px; color: var(--accent-blue);"><i class="fas fa-walking"></i> Attività del Giorno</h3>
+              <div class="activity-timeline" id="modal-activities-list">
+                <!-- Popolato da JS -->
+              </div>
+            </div>
+
+            <!-- Recensioni Ristoranti -->
+            <div id="modal-restaurants-panel">
+              <h3 style="font-family: var(--font-serif); font-size: 20px; margin-bottom: 16px; color: var(--accent-teal);"><i class="fas fa-utensils"></i> Ristoranti & Bar Consigliati</h3>
+              <div id="modal-restaurants-list">
+                <!-- Popolato da JS -->
+              </div>
+            </div>
           </div>
           
+          <!-- Pannello Destro: Percorso e Mappa del giorno -->
           <div class="modal-map-panel">
-            <h3 class="modal-map-title"><i class="fas fa-map-marked-alt"></i> Mappa del Percorso</h3>
+            <h3 class="modal-map-title" id="modal-map-title-day"><i class="fas fa-map-marked-alt"></i> Tappe del Giorno</h3>
+            
+            <!-- Lista delle tappe giornaliere -->
+            <div id="modal-day-route-list" style="margin-bottom: 16px;">
+              <!-- Popolato da JS -->
+            </div>
+
             <!-- Div Contenitore Mappa Leaflet del Modale -->
             <div class="modal-map-container" id="modal-map-container"></div>
           </div>
+
         </div>
       </div>
     </div>
   </div>
+
+  <!-- ==========================================
+       MODALE GUIDA CONFIGURAZIONE FIREBASE
+       ========================================== -->
+  <div class="google-picker-backdrop" id="firebase-guide-modal">
+    <div class="google-picker-card" style="max-width: 500px; color: #f8fafc; background: var(--bg-secondary); border: 1px solid var(--glass-border); border-radius: var(--border-radius-lg);">
+      <div class="google-picker-header" style="text-align: left; margin-bottom: 20px;">
+        <h3 style="font-family: var(--font-serif); font-size: 24px; color: var(--text-primary);">Configura Cloud Firebase</h3>
+        <p style="color: var(--text-secondary); margin-top: 4px;">Segui questi passaggi per sincronizzare i tuoi viaggi nel cloud e condividerli con link esterni.</p>
+      </div>
+      <div style="font-size: 14px; line-height: 1.6; color: var(--text-secondary); max-height: 350px; overflow-y: auto; padding-right: 8px;">
+        <ol style="padding-left: 20px; display: flex; flex-direction: column; gap: 12px; margin-bottom: 10px;">
+          <li><b>Crea un progetto:</b> Vai su <a href="https://console.firebase.google.com/" target="_blank" style="color: var(--accent-blue); text-decoration: underline;">Firebase Console</a> e crea un progetto gratuito.</li>
+          <li><b>Abilita Google Auth:</b> In <i>Authentication</i> -> <i>Sign-in method</i>, attiva l'accesso tramite <b>Google</b>.</li>
+          <li><b>Crea Firestore Database:</b> Clicca su <i>Firestore Database</i> -> <i>Crea database</i> ed avvialo in modalità test.</li>
+          <li><b>Crea Storage:</b> In <i>Storage</i>, clicca su <i>Inizia</i> per attivare il caricamento delle immagini dei tuoi viaggi.</li>
+          <li><b>Copia le chiavi:</b> Nelle impostazioni del progetto, registra un'applicazione Web ed ottieni l'oggetto di configurazione <code>firebaseConfig</code>.</li>
+          <li><b>Incolla nel file:</b> Apri il file <code>config.js</code> nel tuo editor e inserisci le chiavi nell'oggetto <code>window.firebaseConfig</code>.</li>
+          <li><b>Pubblica su GitHub:</b> Esegui il push del file modificato. Vercel aggiornerà il tuo sito online automaticamente, abilitando il login Gmail e la sincronizzazione cloud in tempo reale!</li>
+        </ol>
+      </div>
+      <button type="button" class="btn-primary" id="btn-close-firebase-guide" style="width: 100%; margin-top: 20px; text-align: center; display: block; border: none;">Chiudi Guida</button>
+    </div>
+  </div>
+
 
   <!-- ==========================================
        SELETTORE GOOGLE ACCOUNT (MOCK OAUTH POPUP)
