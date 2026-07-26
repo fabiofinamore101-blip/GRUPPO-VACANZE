@@ -22,11 +22,22 @@
   let activeModalTrip = null;
   let activeModalDayIndex = 0;
 
+  // Stato della registrazione in viaggio (Tracker)
+  let trackingTrip = null;
+  let trackerWatchId = null;
+  let trackerTimerId = null;
+  let trackerStartTime = 0;
+  let trackerElapsedTime = 0; // in millisecondi
+  let trackerMap = null;
+  let trackerMapMarkers = [];
+  let trackerMapPolyline = null;
+  let trackerMapGpsPolyline = null;
+  let trackerLastCoords = null;
+
   // Riferimenti Mappe Leaflet
   let createMap = null;
   let createMapMarkers = [];
   let createMapPolyline = null;
-  let createMapGpsPolyline = null;
   
   let modalMap = null;
   let modalMapMarkers = [];
@@ -35,10 +46,6 @@
   
   // Foto in caricamento (Base64)
   let uploadedPhotoBase64 = null;
-  
-  // Stato tracciamento GPS in tempo reale
-  let gpsWatchId = null;
-  let lastGpsCoords = null;
 
   // Valutazione ristorante selezionata nel form
   let selectedRestRating = 0;
@@ -48,6 +55,7 @@
     login: document.getElementById("login-view"),
     feed: document.getElementById("feed-view"),
     create: document.getElementById("create-view"),
+    tracker: document.getElementById("tracker-view"),
     profile: document.getElementById("profile-view")
   };
 
@@ -111,8 +119,18 @@
   const mapSectionTitleDay = document.getElementById("map-section-title-day");
   const routePlaceholder = document.getElementById("route-placeholder");
   const routeItemsList = document.getElementById("route-items-list");
-  const btnGpsTrack = document.getElementById("btn-gps-track");
-  const gpsStatusIndicator = document.getElementById("gps-status-indicator");
+
+  // Elementi Tracker (In Viaggio)
+  const trackerTripTitle = document.getElementById("tracker-trip-title");
+  const trackerDaySelect = document.getElementById("tracker-day-select");
+  const stopwatchTime = document.getElementById("stopwatch-time");
+  const trackerGpsStatus = document.getElementById("tracker-gps-status");
+  const btnTrackerStart = document.getElementById("btn-tracker-start");
+  const btnTrackerStop = document.getElementById("btn-tracker-stop");
+  const btnTrackerBack = document.getElementById("btn-tracker-back");
+  const btnTrackerCompleteTrip = document.getElementById("btn-tracker-complete-trip");
+  const trackerRoutePlaceholder = document.getElementById("tracker-route-placeholder");
+  const trackerRouteItemsList = document.getElementById("tracker-route-items-list");
   
   // Elementi Feed e Filtri
   const itineraryGrid = document.getElementById("itinerary-grid");
@@ -146,7 +164,7 @@
     // Configura Banner Offline
     if (!window.isFirebaseConfigured()) {
       document.body.classList.add("offline-active");
-      offlineWarningBanner.style.display = "flex";
+      if (offlineWarningBanner) offlineWarningBanner.style.display = "flex";
     }
 
     // Inizializza il database
@@ -225,12 +243,16 @@
         firebaseGuideModal.classList.add("active");
       });
     }
-    btnCloseFirebaseGuide.addEventListener("click", () => {
-      firebaseGuideModal.classList.remove("active");
-    });
-    firebaseGuideModal.addEventListener("click", (e) => {
-      if (e.target === firebaseGuideModal) firebaseGuideModal.classList.remove("active");
-    });
+    if (btnCloseFirebaseGuide) {
+      btnCloseFirebaseGuide.addEventListener("click", () => {
+        firebaseGuideModal.classList.remove("active");
+      });
+    }
+    if (firebaseGuideModal) {
+      firebaseGuideModal.addEventListener("click", (e) => {
+        if (e.target === firebaseGuideModal) firebaseGuideModal.classList.remove("active");
+      });
+    }
 
     // Logout
     document.getElementById("btn-logout").addEventListener("click", function() {
@@ -353,9 +375,6 @@
       }
     });
 
-    // Form - GPS
-    btnGpsTrack.addEventListener("click", toggleGPSTracking);
-
     // Form - Salva e Annulla
     createForm.addEventListener("submit", function(e) {
       e.preventDefault();
@@ -366,6 +385,21 @@
       resetCreateForm();
       switchView("feed");
     });
+
+    // Controlli Tracker (In Viaggio)
+    btnTrackerStart.addEventListener("click", startTrackerRecording);
+    btnTrackerStop.addEventListener("click", stopTrackerRecording);
+    btnTrackerBack.addEventListener("click", function() {
+      if (trackerWatchId || trackerTimerId) {
+        if (!confirm("C'è un tracciamento in corso. Uscendo perderai i dati correnti dello spostamento. Continuare?")) {
+          return;
+        }
+      }
+      resetTrackerState();
+      switchView("profile");
+    });
+    btnTrackerCompleteTrip.addEventListener("click", completeTripFlow);
+    trackerDaySelect.addEventListener("change", changeTrackerDay);
 
     // Modali
     closeModalBtn.addEventListener("click", () => detailsModal.classList.remove("active"));
@@ -466,7 +500,21 @@
     else if (mezzo === "moto") mezzoIcon = "fa-motorcycle";
 
     const currentUser = window.AppDB.getCurrentUser();
-    const canDelete = currentUser && item.user && item.user.uid === currentUser.uid;
+    const isOwner = currentUser && item.user && item.user.uid === currentUser.uid;
+    const canDelete = isOwner;
+    const canStartTrip = isOwner && item.status !== 'completed';
+
+    // Badge dello stato del viaggio
+    const statusVal = item.status || 'planned';
+    let statusClass = 'planned';
+    let statusLabel = 'Programmato';
+    if (statusVal === 'completed') {
+      statusClass = 'completed';
+      statusLabel = 'Completato';
+    } else if (statusVal === 'active') {
+      statusClass = 'active';
+      statusLabel = 'In Corso';
+    }
 
     card.innerHTML = `
       <div class="card-image-wrapper">
@@ -480,9 +528,12 @@
         </div>
       </div>
       <div class="card-content">
-        <div class="card-user-info">
-          <img src="${item.user.photoURL}" alt="${item.user.displayName}" class="card-user-avatar">
-          <span class="card-user-name">${item.user.displayName}</span>
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+          <div class="card-user-info" style="margin-bottom:0;">
+            <img src="${item.user.photoURL}" alt="${item.user.displayName}" class="card-user-avatar">
+            <span class="card-user-name">${item.user.displayName}</span>
+          </div>
+          <span class="badge-stato ${statusClass}">${statusLabel}</span>
         </div>
         <h3 class="card-title">${item.title}</h3>
         <p class="card-desc">${item.description}</p>
@@ -491,12 +542,22 @@
             <span class="card-stat" title="Durata"><i class="far fa-calendar-alt"></i> ${item.durata} gg</span>
             <span class="card-stat" title="Tappe totali"><i class="fas fa-map-marker-alt"></i> ${countTotalTappe(item)} tappe</span>
           </div>
-          <button class="card-btn-detail" data-id="${item.id}">Dettagli <i class="fas fa-arrow-right"></i></button>
+          <div style="display: flex; gap: 8px;">
+            ${canStartTrip ? `<button class="btn-start-trip" data-id="${item.id}" title="Registra Spostamenti GPS in Tempo Reale"><i class="fas fa-location-arrow"></i> Registra</button>` : ''}
+            <button class="card-btn-detail" data-id="${item.id}">Dettagli <i class="fas fa-arrow-right"></i></button>
+          </div>
         </div>
       </div>
     `;
 
     card.querySelector(".card-btn-detail").addEventListener("click", () => openDetailsModal(item));
+    
+    if (canStartTrip) {
+      card.querySelector(".btn-start-trip").addEventListener("click", function(e) {
+        e.stopPropagation();
+        startTrackingTripFlow(item);
+      });
+    }
 
     if (canDelete) {
       card.querySelector(".card-action-btn.delete").addEventListener("click", function(e) {
@@ -592,10 +653,6 @@
   }
 
   function switchFormDay(index) {
-    if (gpsWatchId) {
-      showToast("Interrompi la registrazione GPS prima di cambiare giorno", "error");
-      return;
-    }
     currentFormDayIndex = index;
     renderFormDays();
   }
@@ -805,7 +862,6 @@
     createMap = L.map("create-map-container").setView([41.9028, 12.4964], 6);
 
     const baseLayers = createMapBaseLayers();
-    // Aggiunge il layer di default
     baseLayers["CartoDB Scuro (Default)"].addTo(createMap);
 
     // Controllo di selezione layer integrato (Google/OSM)
@@ -845,14 +901,9 @@
       createMap.removeLayer(createMapPolyline);
       createMapPolyline = null;
     }
-    if (createMapGpsPolyline) {
-      createMap.removeLayer(createMapGpsPolyline);
-      createMapGpsPolyline = null;
-    }
 
     const currentDay = formDataDays[currentFormDayIndex];
     const route = currentDay.route || [];
-    const gpsTrack = currentDay.gpsTrackPoints || [];
 
     // Disegna tappe principali
     route.forEach((point, index) => {
@@ -870,7 +921,7 @@
       createMapMarkers.push(marker);
     });
 
-    // Disegna linea manuale delle tappe (linea blu tratteggiata)
+    // Disegna linea manuale delle tappe (linea blu tratteggiata delle tappe programmate)
     if (route.length >= 2) {
       const latlngs = route.map(p => [p.lat, p.lng]);
       createMapPolyline = L.polyline(latlngs, {
@@ -878,17 +929,6 @@
         weight: 4,
         opacity: 0.8,
         dashArray: '8, 8'
-      }).addTo(createMap);
-    }
-
-    // Disegna percorso GPS completo (linea rossa continua)
-    if (gpsTrack.length >= 2) {
-      const latlngsGps = gpsTrack.map(p => [p.lat, p.lng]);
-      createMapGpsPolyline = L.polyline(latlngsGps, {
-        color: '#f43f5e',
-        weight: 4,
-        opacity: 0.9,
-        lineJoin: 'round'
       }).addTo(createMap);
     }
 
@@ -907,11 +947,10 @@
     const newPoint = { lat, lng, label, time: "" };
     
     if (prevPoint) {
-      // Calcola tempo e distanza reale tramite OSRM
       const mezzo = (selectedTransportInput.value || "Auto").toLowerCase();
       const profile = mezzo === "bicicletta" ? "bicycle" : (mezzo === "piedi" ? "foot" : "driving");
       
-      showToast("Calcolo percorso in corso...", "success");
+      showToast("Calcolo percorso...", "success");
       
       fetch(`https://router.project-osrm.org/route/v1/${profile}/${prevPoint.lng},${prevPoint.lat};${lng},${lat}?overview=false`)
         .then(res => res.json())
@@ -940,19 +979,16 @@
           renderFormDays();
         })
         .catch(() => {
-          // Fallback con simulazione offline
           newPoint.time = simulateTravelTime(prevPoint, newPoint, selectedTransportInput.value);
           currentDay.route.push(newPoint);
           renderFormDays();
         });
     } else {
-      // Prima tappa
       currentDay.route.push(newPoint);
       renderFormDays();
     }
   }
 
-  // Simulatore di percorso offline se OSRM fallisce
   function simulateTravelTime(p1, p2, mezzo) {
     const distMeters = calculateDistance(p1.lat, p1.lng, p2.lat, p2.lng);
     const distKm = distMeters / 1000;
@@ -1023,7 +1059,6 @@
       const item = document.createElement("div");
       item.className = "route-item-container";
       
-      // Badge del tempo di percorrenza prima di questa tappa (tranne che per il primo punto)
       let timeBadgeHtml = "";
       if (index > 0 && point.time) {
         let mezzoIcon = "fa-car";
@@ -1034,8 +1069,8 @@
         else if (mezzo === "piedi") mezzoIcon = "fa-walking";
 
         timeBadgeHtml = `
-          <div class="route-time-badge" title="Tempo di spostamento">
-            <i class="fas ${mezzoIcon}"></i> ${point.time}
+          <div class="route-time-badge" title="Tempo di spostamento programmato">
+            <i class="fas ${mezzoIcon}"></i> Stima: ${point.time}
           </div>
         `;
       }
@@ -1064,7 +1099,6 @@
     const currentDay = formDataDays[currentFormDayIndex];
     currentDay.route.splice(index, 1);
 
-    // Se si rimuove il punto centrale, ricalcoliamo la percorrenza per il punto successivo
     if (index > 0 && index < currentDay.route.length) {
       const prev = currentDay.route[index - 1];
       const next = currentDay.route[index];
@@ -1092,104 +1126,6 @@
         });
     } else {
       renderFormDays();
-    }
-  }
-
-  // === REGISTRAZIONE GPS CONTINUA (INTERA TRATTA) ===
-  function toggleGPSTracking() {
-    if (gpsWatchId) {
-      navigator.geolocation.clearWatch(gpsWatchId);
-      gpsWatchId = null;
-      lastGpsCoords = null;
-      
-      btnGpsTrack.classList.remove("active");
-      btnGpsTrack.querySelector("span").innerText = "Avvia Registrazione GPS";
-      btnGpsTrack.querySelector("i").className = "fas fa-location-arrow";
-      gpsStatusIndicator.style.display = "none";
-      showToast("Registrazione GPS interrotta", "success");
-    } else {
-      if (!navigator.geolocation) {
-        showToast("Il browser non supporta la geolocalizzazione", "error");
-        return;
-      }
-
-      btnGpsTrack.querySelector("span").innerText = "Inizializzazione GPS...";
-      btnGpsTrack.querySelector("i").className = "fas fa-spinner fa-spin";
-
-      const options = {
-        enableHighAccuracy: true,
-        timeout: 10000,
-        maximumAge: 0
-      };
-
-      gpsWatchId = navigator.geolocation.watchPosition(
-        function(position) {
-          const lat = position.coords.latitude;
-          const lng = position.coords.longitude;
-          
-          console.log(`GPS TrackPoint: Lat ${lat}, Lng ${lng}`);
-
-          if (btnGpsTrack.querySelector("i").classList.contains("fa-spinner")) {
-            btnGpsTrack.classList.add("active");
-            btnGpsTrack.querySelector("span").innerText = "Ferma Registrazione GPS";
-            btnGpsTrack.querySelector("i").className = "fas fa-stop";
-            gpsStatusIndicator.style.display = "inline-flex";
-            showToast("Tracciamento GPS attivo!", "success");
-          }
-
-          const currentDay = formDataDays[currentFormDayIndex];
-          if (!currentDay.gpsTrackPoints) currentDay.gpsTrackPoints = [];
-
-          // Salva SEMPRE la coordinata nella tratta GPS completa (linea ad alta densità)
-          currentDay.gpsTrackPoints.push({ lat, lng });
-
-          // Aggiungi come marker principale (Tappa) solo se ci si sposta di almeno 30 metri
-          let shouldAddTappa = false;
-          if (currentDay.route.length === 0) {
-            shouldAddTappa = true;
-          } else {
-            const lastTappa = currentDay.route[currentDay.route.length - 1];
-            const dist = calculateDistance(lastTappa.lat, lastTappa.lng, lat, lng);
-            if (dist >= 30) {
-              shouldAddTappa = true;
-            }
-          }
-
-          if (shouldAddTappa) {
-            const timeLabel = new Date().toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' });
-            
-            if (createMap) createMap.setView([lat, lng], 16);
-
-            // Reverse geocode
-            fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&zoom=15`, {
-              headers: { "Accept-Language": "it" }
-            })
-            .then(res => res.json())
-            .then(data => {
-              let label = `Rilevamento GPS (${timeLabel})`;
-              if (data && data.display_name) {
-                const addr = data.address;
-                label = (addr.road || addr.suburb || addr.city || "Punto GPS") + ` (${timeLabel})`;
-              }
-              addRoutePoint(lat, lng, label);
-            })
-            .catch(() => {
-              addRoutePoint(lat, lng, `Rilevamento GPS (${timeLabel})`);
-            });
-          } else {
-            // Aggiorna solo il tracciato della linea GPS sulla mappa
-            updateCreationMapLayers();
-          }
-        },
-        function(error) {
-          console.error(error);
-          showToast("Errore di segnale GPS", "error");
-          if (error.code === error.PERMISSION_DENIED) {
-            toggleGPSTracking();
-          }
-        },
-        options
-      );
     }
   }
 
@@ -1222,7 +1158,6 @@
       return;
     }
 
-    // Controlla che ci sia almeno una tappa inserita in tutto il viaggio
     const totalTappe = formDataDays.reduce((c, d) => c + d.route.length, 0);
     if (totalTappe === 0) {
       showToast("Inserisci almeno una tappa nel viaggio!", "error");
@@ -1238,12 +1173,13 @@
       durata: formDataDays.length,
       data,
       photo: uploadedPhotoBase64 || "",
-      days: formDataDays
+      days: formDataDays,
+      status: "planned" // Predefinito: Solo Programmato
     };
 
     const submitBtn = createForm.querySelector("button[type='submit']");
     submitBtn.disabled = true;
-    submitBtn.innerHTML = "<i class='fas fa-spinner fa-spin'></i> Condivisione...";
+    submitBtn.innerHTML = "<i class='fas fa-spinner fa-spin'></i> Salvataggio...";
 
     window.AppDB.addItinerary(itineraryData, function(err) {
       submitBtn.disabled = false;
@@ -1252,7 +1188,7 @@
       if (err) {
         showToast("Errore di salvataggio: " + err.message, "error");
       } else {
-        showToast("Viaggio condiviso con successo!", "success");
+        showToast("Viaggio programmato con successo!", "success");
         resetCreateForm();
         refreshData();
         switchView("feed");
@@ -1268,16 +1204,6 @@
     uploadedPhotoBase64 = null;
     filePreviewContainer.style.display = "none";
     document.querySelector(".photo-upload-zone p").innerText = "Trascina una foto o clicca per caricare";
-    
-    if (gpsWatchId) {
-      navigator.geolocation.clearWatch(gpsWatchId);
-      gpsWatchId = null;
-      lastGpsCoords = null;
-      btnGpsTrack.classList.remove("active");
-      btnGpsTrack.querySelector("span").innerText = "Avvia Registrazione GPS";
-      btnGpsTrack.querySelector("i").className = "fas fa-location-arrow";
-      gpsStatusIndicator.style.display = "none";
-    }
 
     formDataDays = [
       { dayNumber: 1, route: [], gpsTrackPoints: [], activities: [], restaurants: [] }
@@ -1288,10 +1214,348 @@
       createMapMarkers.forEach(m => createMap.removeLayer(m));
       createMapMarkers = [];
       if (createMapPolyline) createMap.removeLayer(createMapPolyline);
-      if (createMapGpsPolyline) createMap.removeLayer(createMapGpsPolyline);
       createMapPolyline = null;
-      createMapGpsPolyline = null;
     }
+  }
+
+  // === REGISTRAZIONE IN VIAGGIO (LOGICA TRACKER) ===
+  function startTrackingTripFlow(trip) {
+    if (trackerWatchId || trackerTimerId) {
+      showToast("Hai già un tracciamento in corso per un altro viaggio!", "error");
+      return;
+    }
+
+    trackingTrip = trip;
+    switchView("tracker");
+
+    trackerTripTitle.innerText = trip.title;
+
+    // Popola selezione giorno
+    trackerDaySelect.innerHTML = "";
+    trip.days.forEach(d => {
+      const opt = document.createElement("option");
+      opt.value = d.dayNumber;
+      opt.innerText = `Giorno ${d.dayNumber}`;
+      trackerDaySelect.appendChild(opt);
+    });
+
+    // Seleziona il primo giorno che non ha un tempo effettivo registrato
+    const firstUnrecordedDay = trip.days.find(d => !d.actualTime);
+    if (firstUnrecordedDay) {
+      trackerDaySelect.value = firstUnrecordedDay.dayNumber;
+    } else {
+      trackerDaySelect.value = 1;
+    }
+
+    stopwatchTime.innerText = "00:00:00";
+    trackerElapsedTime = 0;
+    
+    btnTrackerStart.style.display = "flex";
+    btnTrackerStop.style.display = "none";
+    trackerGpsStatus.innerHTML = `<i class="fas fa-satellite" style="color:var(--text-muted);"></i> GPS non attivo. Premi Avvia per registrare lo spostamento reale.`;
+
+    initTrackerMap();
+  }
+
+  function changeTrackerDay() {
+    if (trackerWatchId || trackerTimerId) {
+      showToast("Impossibile cambiare giorno mentre la registrazione è attiva!", "error");
+      trackerDaySelect.value = activeTrackerDayNumber();
+      return;
+    }
+    stopwatchTime.innerText = "00:00:00";
+    trackerElapsedTime = 0;
+    initTrackerMap();
+  }
+
+  function activeTrackerDayNumber() {
+    return parseInt(trackerDaySelect.value) || 1;
+  }
+
+  function activeTrackerDay() {
+    const num = activeTrackerDayNumber();
+    return trackingTrip.days.find(d => d.dayNumber === num);
+  }
+
+  function initTrackerMap() {
+    if (trackerMap) {
+      trackerMap.remove();
+      trackerMap = null;
+    }
+
+    const day = activeTrackerDay();
+    if (!day) return;
+
+    trackerMapMarkers = [];
+
+    // Div contenitore
+    const container = document.getElementById("tracker-map-container");
+    container.innerHTML = "";
+
+    // Mappa centrata su prima tappa programmata o Italia di default
+    const defaultCenter = day.route && day.route[0] ? [day.route[0].lat, day.route[0].lng] : [41.9028, 12.4964];
+    const defaultZoom = day.route && day.route[0] ? 12 : 6;
+
+    trackerMap = L.map("tracker-map-container").setView(defaultCenter, defaultZoom);
+
+    const baseLayers = createMapBaseLayers();
+    baseLayers["CartoDB Scuro (Default)"].addTo(trackerMap);
+    L.control.layers(baseLayers).addTo(trackerMap);
+
+    // Disegna tappe pianificate sulla mappa (Blu)
+    const route = day.route || [];
+    route.forEach((point, index) => {
+      const num = index + 1;
+      const customIcon = L.divIcon({
+        className: 'custom-map-marker',
+        html: `<div style="background-color:#3b82f6;color:white;width:24px;height:24px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:bold;font-size:11px;border:2px solid white;box-shadow:0 2px 5px rgba(0,0,0,0.5)">${num}</div>`,
+        iconSize: [24, 24],
+        iconAnchor: [12, 12]
+      });
+
+      const marker = L.marker([point.lat, point.lng], { icon: customIcon }).addTo(trackerMap)
+        .bindPopup(`<b>Pianificato - Tappa ${num}:</b> ${point.label}`);
+      
+      trackerMapMarkers.push(marker);
+    });
+
+    if (route.length >= 2) {
+      const latlngs = route.map(p => [p.lat, p.lng]);
+      trackerMapPolyline = L.polyline(latlngs, {
+        color: '#3b82f6',
+        weight: 3,
+        opacity: 0.6,
+        dashArray: '6, 6'
+      }).addTo(trackerMap);
+    }
+
+    // Se ci sono già coordinate GPS registrate per questo giorno (es. tracciato pre-esistente), mostralo in rosso
+    const gpsTrack = day.gpsTrackPoints || [];
+    if (gpsTrack.length >= 2) {
+      const latlngsGps = gpsTrack.map(p => [p.lat, p.lng]);
+      trackerMapGpsPolyline = L.polyline(latlngsGps, {
+        color: '#f43f5e',
+        weight: 4,
+        opacity: 0.9,
+        lineJoin: 'round'
+      }).addTo(trackerMap);
+    }
+
+    // Centra sui marker pianificati
+    if (trackerMapMarkers.length > 0) {
+      const group = new L.featureGroup(trackerMapMarkers);
+      trackerMap.fitBounds(group.getBounds().pad(0.2));
+    }
+
+    renderTrackerRouteList();
+  }
+
+  function renderTrackerRouteList() {
+    trackerRouteItemsList.innerHTML = "";
+    const day = activeTrackerDay();
+    if (!day) return;
+
+    const gpsPoints = day.gpsTrackPoints || [];
+    
+    if (gpsPoints.length === 0) {
+      trackerRoutePlaceholder.style.display = "block";
+      return;
+    }
+
+    trackerRoutePlaceholder.style.display = "none";
+
+    // Mostra un riepilogo dei punti GPS registrati
+    gpsPoints.forEach((point, index) => {
+      const item = document.createElement("div");
+      item.className = "route-item-container";
+      item.innerHTML = `
+        <div class="route-item" style="border: 1px solid rgba(244, 63, 94, 0.15); background-color: rgba(244, 63, 94, 0.02); padding: 8px 12px;">
+          <div class="route-item-details">
+            <div class="route-item-number" style="background-color: var(--accent-coral); color: white; border-color: rgba(244, 63, 94, 0.2); font-size:10px; width:18px; height:18px;">R</div>
+            <span class="route-item-name" style="font-size: 13px;">Rilevamento GPS #${index + 1} (${point.time || 'Ok'})</span>
+          </div>
+        </div>
+      `;
+      trackerRouteItemsList.appendChild(item);
+    });
+  }
+
+  function startTrackerRecording() {
+    if (trackerWatchId || trackerTimerId) return;
+
+    if (!navigator.geolocation) {
+      showToast("Il browser non supporta la geolocalizzazione", "error");
+      return;
+    }
+
+    const day = activeTrackerDay();
+    if (!day) return;
+
+    showToast("Tracciamento GPS ed acquisizione avviata!", "success");
+
+    // Azzera i dati GPS registrati precedentemente per oggi per fare un nuovo spostamento pulito
+    day.gpsTrackPoints = [];
+    trackerLastCoords = null;
+    renderTrackerRouteList();
+
+    // Rimuovi polilinea GPS precedente
+    if (trackerMapGpsPolyline) {
+      trackerMap.removeLayer(trackerMapGpsPolyline);
+      trackerMapGpsPolyline = null;
+    }
+
+    // Avvia cronometro
+    trackerStartTime = Date.now();
+    trackerTimerId = setInterval(updateStopwatch, 200);
+
+    // Avvia geolocalizzazione ad alta precisione
+    trackerGpsStatus.innerHTML = `<i class="fas fa-spinner fa-spin" style="color:var(--accent-amber);"></i> Aggancio segnale GPS in corso...`;
+    
+    trackerWatchId = navigator.geolocation.watchPosition(
+      function(position) {
+        const lat = position.coords.latitude;
+        const lng = position.coords.longitude;
+        
+        trackerGpsStatus.innerHTML = `<i class="fas fa-satellite" style="color:var(--accent-emerald);"></i> Segnale GPS attivo. Precisione: ${position.coords.accuracy.toFixed(0)}m`;
+
+        // Salva coordinata
+        const timeLabel = new Date().toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+        const newPoint = { lat, lng, time: timeLabel };
+        day.gpsTrackPoints.push(newPoint);
+
+        // Centra mappa
+        if (trackerMap) trackerMap.setView([lat, lng], 16);
+
+        // Aggiorna tracciato rosso
+        if (trackerMap) {
+          const latlngsGps = day.gpsTrackPoints.map(p => [p.lat, p.lng]);
+          if (trackerMapGpsPolyline) {
+            trackerMapGpsPolyline.setLatLngs(latlngsGps);
+          } else {
+            trackerMapGpsPolyline = L.polyline(latlngsGps, {
+              color: '#f43f5e',
+              weight: 4,
+              opacity: 0.9,
+              lineJoin: 'round'
+            }).addTo(trackerMap);
+          }
+        }
+
+        renderTrackerRouteList();
+      },
+      function(error) {
+        console.error(error);
+        trackerGpsStatus.innerHTML = `<i class="fas fa-exclamation-triangle" style="color:var(--accent-coral);"></i> Errore GPS: segnale perso.`;
+      },
+      {
+        enableHighAccuracy: true,
+        timeout: 15000,
+        maximumAge: 0
+      }
+    );
+
+    // Gestione pulsanti
+    btnTrackerStart.style.display = "none";
+    btnTrackerStop.style.display = "flex";
+  }
+
+  function updateStopwatch() {
+    trackerElapsedTime = Date.now() - trackerStartTime;
+    
+    const totSeconds = Math.floor(trackerElapsedTime / 1000);
+    const hours = Math.floor(totSeconds / 3600);
+    const minutes = Math.floor((totSeconds % 3600) / 60);
+    const seconds = totSeconds % 60;
+
+    const pad = (n) => n.toString().padStart(2, '0');
+    stopwatchTime.innerText = `${pad(hours)}:${pad(minutes)}:${pad(seconds)}`;
+  }
+
+  function stopTrackerRecording() {
+    if (!trackerWatchId && !trackerTimerId) return;
+
+    // Ferma timer e GPS
+    clearInterval(trackerTimerId);
+    trackerTimerId = null;
+
+    navigator.geolocation.clearWatch(trackerWatchId);
+    trackerWatchId = null;
+
+    const day = activeTrackerDay();
+    if (!day) return;
+
+    // Calcola tempo effettivo trascorso in ore/minuti
+    const totMinutes = Math.round(trackerElapsedTime / 1000 / 60);
+    let durationText = "0 min";
+    if (totMinutes >= 60) {
+      const h = Math.floor(totMinutes / 60);
+      const m = totMinutes % 60;
+      durationText = `${h}h ${m}min`;
+    } else {
+      durationText = `${totMinutes} min`;
+    }
+
+    day.actualTime = durationText;
+
+    // Imposta stato viaggio a "In Corso" (active) se non è già completato
+    if (trackingTrip.status !== 'completed') {
+      trackingTrip.status = 'active';
+    }
+
+    // Salva nel Database
+    window.AppDB.addItinerary(trackingTrip, function(err) {
+      if (err) {
+        showToast("Impossibile salvare i dati del tracciamento", "error");
+      } else {
+        showToast(`Spostamento Giorno ${day.dayNumber} salvato! Tempo reale: ${durationText}`, "success");
+        refreshData();
+      }
+    });
+
+    btnTrackerStart.style.display = "flex";
+    btnTrackerStop.style.display = "none";
+    trackerGpsStatus.innerHTML = `<i class="fas fa-check-circle" style="color:var(--accent-emerald);"></i> Spostamento registrato con successo!`;
+  }
+
+  function completeTripFlow() {
+    if (trackerWatchId || trackerTimerId) {
+      showToast("Ferma la registrazione corrente prima di completare il viaggio!", "error");
+      return;
+    }
+
+    if (confirm("Vuoi segnare l'intero viaggio come completato? Lo stato diventerà 'Completato' e non sarà più possibile registrare nuovi spostamenti.")) {
+      trackingTrip.status = "completed";
+
+      window.AppDB.addItinerary(trackingTrip, function(err) {
+        if (err) {
+          showToast("Errore durante il salvataggio", "error");
+        } else {
+          showToast("Viaggio completato con successo!", "success");
+          resetTrackerState();
+          refreshData();
+          switchView("profile");
+        }
+      });
+    }
+  }
+
+  function resetTrackerState() {
+    if (trackerTimerId) clearInterval(trackerTimerId);
+    if (trackerWatchId) navigator.geolocation.clearWatch(trackerWatchId);
+    
+    trackingTrip = null;
+    trackerWatchId = null;
+    trackerTimerId = null;
+    trackerStartTime = 0;
+    trackerElapsedTime = 0;
+    
+    if (trackerMap) {
+      trackerMap.remove();
+      trackerMap = null;
+    }
+    trackerMapMarkers = [];
+    trackerMapPolyline = null;
+    trackerMapGpsPolyline = null;
   }
 
   // === RENDERING DETTAGLI VIAGGIO (MODALE MULTI-GIORNO) ===
@@ -1334,7 +1598,6 @@
       tab.innerText = `Giorno ${day.dayNumber}`;
       tab.addEventListener("click", () => {
         activeModalDayIndex = index;
-        // Aggiorna classi attive
         modalDayTabs.querySelectorAll(".day-tab").forEach((t, i) => {
           t.className = `day-tab ${i === index ? 'active' : ''}`;
         });
@@ -1399,18 +1662,71 @@
       });
     }
 
-    // 3. Renderizza Lista Tappe
+    // 3. Renderizza Lista Tappe e Visualizzazione del Tempo (Confronto Effettivo vs Stimato)
     modalDayRouteList.innerHTML = "";
     const route = day.route || [];
+    
+    // Mostra il tempo totale di spostamento in cima alla lista tappe
+    if (route.length > 0) {
+      const timeContainer = document.createElement("div");
+      timeContainer.className = "modal-time-container";
+
+      if (day.actualTime) {
+        // Se registrato: mostra tempo effettivo in verde
+        timeContainer.innerHTML = `
+          <div class="time-badge-actual" title="Registrato tramite cronometro GPS">
+            <i class="fas fa-history"></i> Tempo Effettivo Spostamento: <b>${day.actualTime}</b>
+          </div>
+        `;
+      } else {
+        // Se non registrato: mostra tempo stimato programmato (somma dei tempi stimati OSRM)
+        let totalEstMin = 0;
+        let hasEstTimes = false;
+        route.forEach(point => {
+          if (point.time) {
+            hasEstTimes = true;
+            const matches = point.time.match(/(\d+)\s*min/);
+            if (matches) {
+              totalEstMin += parseInt(matches[1]);
+            }
+            const hourMatches = point.time.match(/(\d+)h\s*(\d+)?min/);
+            if (hourMatches) {
+              totalEstMin += parseInt(hourMatches[1]) * 60 + (hourMatches[2] ? parseInt(hourMatches[2]) : 0);
+            }
+          }
+        });
+
+        let estTimeStr = "Stima non disponibile";
+        if (hasEstTimes && totalEstMin > 0) {
+          if (totalEstMin >= 60) {
+            estTimeStr = `${Math.floor(totalEstMin / 60)}h ${totalEstMin % 60}min (stima)`;
+          } else {
+            estTimeStr = `${totalEstMin} min (stima)`;
+          }
+        }
+
+        timeContainer.innerHTML = `
+          <div class="time-badge-estimated" title="Calcolato automaticamente in pianificazione">
+            <i class="far fa-clock"></i> Spostamento Stimato: <b>${estTimeStr}</b>
+          </div>
+        `;
+      }
+      modalDayRouteList.appendChild(timeContainer);
+    }
+
     if (route.length === 0) {
-      modalDayRouteList.innerHTML = `<div style="font-size:13px; color:var(--text-muted); font-style:italic;">Nessuna tappa presente per oggi.</div>`;
+      const emptyEl = document.createElement("div");
+      emptyEl.style = "font-size:13px; color:var(--text-muted); font-style:italic;";
+      emptyEl.innerText = "Nessuna tappa presente per oggi.";
+      modalDayRouteList.appendChild(emptyEl);
     } else {
       route.forEach((point, index) => {
         const item = document.createElement("div");
         item.className = "route-item-container";
         
-        let timeBadgeHtml = "";
-        if (index > 0 && point.time) {
+        let estTimeHtml = "";
+        // Se non registrato, mostra le singole stime di tratta pianificate
+        if (!day.actualTime && index > 0 && point.time) {
           let mezzoIcon = "fa-car";
           const mezzo = (activeModalTrip.mezzo || "Auto").toLowerCase();
           if (mezzo === "aereo") mezzoIcon = "fa-plane";
@@ -1418,15 +1734,15 @@
           else if (mezzo === "bicicletta") mezzoIcon = "fa-bicycle";
           else if (mezzo === "piedi") mezzoIcon = "fa-walking";
 
-          timeBadgeHtml = `
+          estTimeHtml = `
             <div class="route-time-badge" style="margin: 6px auto;">
-              <i class="fas ${mezzoIcon}"></i> ${point.time}
+              <i class="fas ${mezzoIcon}"></i> Stima: ${point.time}
             </div>
           `;
         }
 
         item.innerHTML = `
-          ${timeBadgeHtml}
+          ${estTimeHtml}
           <div class="route-item" style="border:1px solid var(--glass-border); padding: 10px 14px; background: rgba(255,255,255,0.01);">
             <div class="route-item-details">
               <div class="route-item-number" style="background: var(--bg-tertiary); color: var(--accent-emerald); border-color: rgba(16, 185, 129, 0.2);">${index + 1}</div>
@@ -1460,7 +1776,6 @@
 
     document.getElementById("modal-map-container").style.display = "block";
 
-    // Inquadra sulla prima tappa
     const firstPoint = route[0] || gpsTrack[0];
     modalMap = L.map("modal-map-container").setView([firstPoint.lat, firstPoint.lng], 10);
 
@@ -1471,7 +1786,7 @@
     modalMapMarkers = [];
     const latlngs = [];
 
-    // Tappe principali
+    // Tappe principali pianificate
     route.forEach((point, index) => {
       const num = index + 1;
       latlngs.push([point.lat, point.lng]);
@@ -1484,12 +1799,12 @@
       });
 
       const marker = L.marker([point.lat, point.lng], { icon: customIcon }).addTo(modalMap)
-        .bindPopup(`<b>Tappa ${num}:</b> ${point.label}`);
+        .bindPopup(`<b>Pianificato - Tappa ${num}:</b> ${point.label}`);
       
       modalMapMarkers.push(marker);
     });
 
-    // Polilinea manuale tappe (linea verde tratteggiata)
+    // Polilinea manuale tappe (linea verde tratteggiata per le tappe programmate)
     if (route.length >= 2) {
       modalMapPolyline = L.polyline(latlngs, {
         color: '#10b981',
@@ -1500,7 +1815,7 @@
       }).addTo(modalMap);
     }
 
-    // Polilinea percorso GPS completo (linea rossa continua)
+    // Polilinea percorso GPS completo reale (linea rossa continua)
     if (gpsTrack.length >= 2) {
       const latlngsGps = gpsTrack.map(p => [p.lat, p.lng]);
       modalMapGpsPolyline = L.polyline(latlngsGps, {
@@ -1513,8 +1828,6 @@
 
     // Adatta inquadratura
     const allMarkers = [...modalMapMarkers];
-    
-    // Se non ci sono tappe ma c'è tracciato GPS, crea dei marker fittizi invisibili per calcolare i bounds
     if (allMarkers.length === 0 && gpsTrack.length > 0) {
       const groupGps = L.polyline(gpsTrack.map(p => [p.lat, p.lng]));
       modalMap.fitBounds(groupGps.getBounds().pad(0.2));
@@ -1533,10 +1846,8 @@
     if (!activeModalTrip) return;
 
     if (window.isFirebaseConfigured()) {
-      // Genera link diretto per Vercel
       const shareUrl = window.location.origin + window.location.pathname + `?trip=${activeModalTrip.id}`;
       
-      // Prova ad usare l'API di condivisione nativa dello smartphone o copia in clipboard
       if (navigator.share) {
         navigator.share({
           title: `Itinerario: ${activeModalTrip.title}`,
@@ -1546,7 +1857,6 @@
         .then(() => showToast("Viaggio condiviso!", "success"))
         .catch(err => console.log("Errore condivisione: ", err));
       } else {
-        // Copia negli appunti
         navigator.clipboard.writeText(shareUrl)
           .then(() => {
             showToast("Link copiato negli appunti!", "success");
@@ -1556,8 +1866,7 @@
           });
       }
     } else {
-      // Se siamo in locale, apri il modale guida spiegando come attivare Firebase
-      firebaseGuideModal.classList.add("active");
+      if (firebaseGuideModal) firebaseGuideModal.classList.add("active");
       showToast("La condivisione richiede la configurazione Cloud!", "error");
     }
   }

@@ -333,15 +333,7 @@
                 <button type="button" id="map-search-btn">Cerca</button>
               </div>
 
-              <!-- Controllo GPS in tempo reale -->
-              <div class="gps-tracking-container" style="margin-bottom: 15px; display: flex; align-items: center; gap: 12px; flex-wrap: wrap;">
-                <button type="button" id="btn-gps-track" class="btn-gps" style="flex-grow: 1;">
-                  <i class="fas fa-location-arrow"></i> <span>Avvia Registrazione GPS</span>
-                </button>
-                <div id="gps-status-indicator" class="gps-status-text" style="display: none; font-size: 13px; color: var(--accent-coral); font-weight: 500; align-items: center; gap: 8px;">
-                  <span class="rec-dot"></span> REGISTRAZIONE ATTIVA
-                </div>
-              </div>
+
               
               <p style="font-size: 13px; color: var(--text-secondary); margin-bottom: 12px;">
                 <i class="fas fa-info-circle" style="color: var(--accent-blue);"></i> Clicca sulla mappa o cerca località per aggiungere le tappe del <b>giorno corrente</b>. Le tratte stradali indicheranno le tempistiche e distanze reali.
@@ -372,6 +364,84 @@
           <button type="submit" class="btn-primary" id="save-itinerary-btn">Condividi Itinerario</button>
         </div></div>
       </form>
+    </section>
+
+    <!-- ==========================================
+         IN VIAGGIO / REGISTRAZIONE SPOSTAMENTI (TRACKER)
+         ========================================== -->
+    <section id="tracker-view" class="view-section">
+      <div class="page-header">
+        <h1 class="page-title">Registra Spostamento <span id="tracker-trip-title" style="font-size: 14px; font-weight: 400; color: var(--text-secondary); display: block; margin-top: 4px;">Viaggio in Corso</span></h1>
+      </div>
+
+      <div class="create-grid">
+        <!-- Pannello Sinistro: Controlli Registrazione e Cronometro -->
+        <div class="create-form-panel" style="text-align: center; padding: 40px 30px;">
+          <h2 class="form-section-title"><i class="fas fa-history"></i> Cronometro Spostamento</h2>
+          
+          <!-- Selezione Giorno da Registrare -->
+          <div class="form-group" style="margin-bottom: 24px; text-align: left;">
+            <label for="tracker-day-select">Seleziona Giorno da Registrare</label>
+            <select id="tracker-day-select" style="width: 100%;">
+              <!-- Popolato dinamicamente da JS -->
+            </select>
+          </div>
+
+          <!-- Cronometro Digitale Gigante -->
+          <div class="stopwatch-display" id="stopwatch-time" style="font-size: 56px; font-weight: 700; font-family: monospace; color: var(--accent-blue); background-color: rgba(0,0,0,0.25); padding: 20px; border-radius: var(--border-radius-sm); margin-bottom: 30px; letter-spacing: 2px; border: 1px solid var(--glass-border);">
+            00:00:00
+          </div>
+
+          <!-- Stato segnale GPS -->
+          <div id="tracker-gps-status" style="margin-bottom: 24px; font-size: 14px; color: var(--text-secondary); display: flex; justify-content: center; align-items: center; gap: 8px;">
+            <i class="fas fa-satellite" style="color: var(--text-muted);"></i> GPS non attivo. Avvia lo spostamento per iniziare.
+          </div>
+
+          <!-- Pulsanti di Controllo -->
+          <div style="display: flex; flex-direction: column; gap: 16px;">
+            <button type="button" class="btn-primary" id="btn-tracker-start" style="width: 100%; justify-content: center; background: linear-gradient(135deg, var(--accent-emerald) 0%, #059669 100%); border: none; box-shadow: 0 4px 15px rgba(16, 185, 129, 0.3); font-size: 16px; padding: 14px; display: flex; align-items: center; gap: 8px;">
+              <i class="fas fa-play"></i> Avvia Spostamento (Attiva GPS)
+            </button>
+            
+            <button type="button" class="btn-primary" id="btn-tracker-stop" style="width: 100%; justify-content: center; background: linear-gradient(135deg, var(--accent-coral) 0%, #e11d48 100%); border: none; box-shadow: 0 4px 15px rgba(244, 63, 94, 0.3); font-size: 16px; padding: 14px; display: none; align-items: center; gap: 8px;">
+              <i class="fas fa-stop"></i> Ferma Spostamento (Arrivato)
+            </button>
+          </div>
+
+          <div style="margin-top: 30px; display: flex; gap: 12px;">
+            <button type="button" class="btn-secondary" id="btn-tracker-back" style="flex-grow: 1;">
+              Indietro
+            </button>
+            <button type="button" class="btn-primary" id="btn-tracker-complete-trip" style="flex-grow: 1; border: none; background: linear-gradient(135deg, var(--accent-blue) 0%, var(--accent-teal) 100%);">
+              Completa Viaggio
+            </button>
+          </div>
+        </div>
+
+        <!-- Pannello Destro: Mappa Live del Percorso Registrato -->
+        <div class="map-panel">
+          <div class="map-card">
+            <h2 class="form-section-title"><i class="fas fa-map-marked-alt"></i> Mappa del Tracciamento Live</h2>
+            <p style="font-size: 13px; color: var(--text-secondary); margin-bottom: 12px;">
+              <i class="fas fa-info-circle" style="color: var(--accent-blue);"></i> La linea rossa mostra l'esatto tracciato che stai percorrendo. Quando arrivi a destinazione e clicchi "Ferma Spostamento", il tempo reale misurato verrà salvato.
+            </p>
+            <!-- Contenitore Mappa Live -->
+            <div class="map-container" id="tracker-map-container" style="height: 400px; border-radius: var(--border-radius-sm); border: 1px solid var(--glass-border);"></div>
+          </div>
+
+          <div class="map-card">
+            <h2 class="form-section-title"><i class="fas fa-history"></i> Tappe GPS Rilevate per Oggi</h2>
+            <div class="route-list-container">
+              <div class="route-placeholder" id="tracker-route-placeholder">
+                Nessuna coordinata GPS registrata per oggi. Avvia la registrazione e inizia a muoverti.
+              </div>
+              <div id="tracker-route-items-list">
+                <!-- Tappe registrate in tempo reale -->
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
     </section>
 
     <!-- ==========================================

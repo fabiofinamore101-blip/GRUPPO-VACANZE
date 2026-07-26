@@ -15,13 +15,14 @@ window.AppDB = (function() {
     {
       id: "sample-1",
       title: "Costiera Amalfitana in due giorni",
-      description: "Un viaggio indimenticabile lungo le scogliere campane, tra borghi storici, profumo di limoni e cibo eccezionale. Abbiamo esplorato a piedi i vicoletti di Amalfi e Positano e guidato lungo la panoramica statale 163.",
+      description: "Un viaggio indimenticabile lungo le scogliere campane. Abbiamo programmato e poi registrato l'intero percorso reale tramite GPS, verificando i tempi di percorrenza effettivi lungo la panoramica statale 163.",
       mezzo: "Auto",
       costo: 350,
       valuta: "EUR",
       durata: 2,
       data: "2026-06-15",
       photo: "https://images.unsplash.com/photo-1533105079780-92b9be482077?auto=format&fit=crop&w=800&q=80",
+      status: "completed", // Viaggio completato con spostamento registrato!
       user: {
         uid: "mock-user-1",
         displayName: "Marco Polo",
@@ -35,6 +36,7 @@ window.AppDB = (function() {
             { lat: 40.6824, lng: 14.7681, label: "Salerno (Partenza)" },
             { lat: 40.6331, lng: 14.6027, label: "Amalfi", time: "35 min (22 km)" }
           ],
+          actualTime: "38 min", // Tempo reale cronometrato!
           gpsTrackPoints: [
             { lat: 40.6824, lng: 14.7681 },
             { lat: 40.6791, lng: 14.7432 },
@@ -58,6 +60,7 @@ window.AppDB = (function() {
             { lat: 40.6281, lng: 14.4850, label: "Positano", time: "25 min (18 km)" },
             { lat: 40.6762, lng: 14.3758, label: "Sorrento", time: "30 min (22 km)" }
           ],
+          actualTime: "1h 05min", // Tempo reale totalizzato sui due spostamenti!
           gpsTrackPoints: [
             { lat: 40.6331, lng: 14.6027 },
             { lat: 40.6251, lng: 14.5512 },
@@ -81,13 +84,14 @@ window.AppDB = (function() {
     {
       id: "sample-2",
       title: "Weekend in Bici nei Castelli Romani",
-      description: "Due giorni all'insegna dello sport e della buona cucina romana, pedalando tra i laghi vulcanici di Albano e Nemi con salite impegnative e discese mozzafiato.",
+      description: "Due giorni all'insegna dello sport e della buona cucina romana, pedalando tra i laghi vulcanici di Albano e Nemi. Questo è un viaggio pianificato in attesa di essere effettuato e registrato.",
       mezzo: "Bicicletta",
       costo: 80,
       valuta: "EUR",
       durata: 2,
       data: "2026-07-02",
       photo: "https://images.unsplash.com/photo-1541432901042-2d8bd64b4a9b?auto=format&fit=crop&w=800&q=80",
+      status: "planned", // Viaggio solo programmato (nessun tempo effettivo, nessun tracciamento GPS)
       user: {
         uid: "mock-user-2",
         displayName: "Sofia Rossi",
@@ -101,12 +105,7 @@ window.AppDB = (function() {
             { lat: 41.7454, lng: 12.6508, label: "Castel Gandolfo" },
             { lat: 41.7225, lng: 12.7176, label: "Nemi", time: "40 min (10 km)" }
           ],
-          gpsTrackPoints: [
-            { lat: 41.7454, lng: 12.6508 },
-            { lat: 41.7391, lng: 12.6712 },
-            { lat: 41.7299, lng: 12.6954 },
-            { lat: 41.7225, lng: 12.7176 }
-          ],
+          gpsTrackPoints: [], // Vuoto, deve ancora viaggiare!
           activities: [
             { time: "09:30", title: "Canoa sul Lago di Albano", description: "Un'ora di noleggio canoa per esplorare le rive tranquille del lago vulcanico.", costo: 12, valuta: "EUR" },
             { time: "16:00", title: "Trekking nei boschi di Nemi", description: "Passeggiata rilassante immersi nella natura lungo il sentiero del Tempio di Diana.", costo: 0, valuta: "EUR" }
@@ -121,12 +120,7 @@ window.AppDB = (function() {
             { lat: 41.7225, lng: 12.7176, label: "Nemi" },
             { lat: 41.8080, lng: 12.6789, label: "Frascati", time: "50 min (15 km)" }
           ],
-          gpsTrackPoints: [
-            { lat: 41.7225, lng: 12.7176 },
-            { lat: 41.7511, lng: 12.7092 },
-            { lat: 41.7821, lng: 12.6811 },
-            { lat: 41.8080, lng: 12.6789 }
-          ],
+          gpsTrackPoints: [], // Vuoto!
           activities: [
             { time: "11:00", title: "Visita a Villa Aldobrandini", description: "Passeggiata nei magnifici giardini monumentali all'italiana che sovrastano la città di Frascati.", costo: 0, valuta: "EUR" },
             { time: "15:00", title: "Degustazione in cantina", description: "Tour guidato delle vigne con degustazione di Frascati Superiore DOCG e olio extravergine d'oliva.", costo: 25, valuta: "EUR" }

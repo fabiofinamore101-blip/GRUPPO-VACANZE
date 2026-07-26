@@ -1968,3 +1968,108 @@ body.offline-active .view-section {
   font-family: var(--font-sans) !important;
 }
 
+/* ==========================================================================
+   INTERFACCIA TRACKER (REGISTRAZIONE IN VIAGGIO)
+   ========================================================================== */
+.stopwatch-display {
+  font-family: 'Outfit', 'Courier New', Courier, monospace;
+  font-size: 56px;
+  font-weight: 800;
+  text-shadow: 0 0 10px rgba(59, 130, 246, 0.4);
+  letter-spacing: 2px;
+}
+
+/* Badge di stato viaggio */
+.badge-stato {
+  font-size: 11px;
+  font-weight: 700;
+  padding: 4px 8px;
+  border-radius: 8px;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin-left: 8px;
+  text-transform: uppercase;
+}
+.badge-stato.planned {
+  background-color: rgba(59, 130, 246, 0.15);
+  border: 1px solid rgba(59, 130, 246, 0.3);
+  color: var(--accent-blue);
+}
+.badge-stato.active {
+  background-color: rgba(245, 158, 11, 0.15);
+  border: 1px solid rgba(245, 158, 11, 0.3);
+  color: var(--accent-amber);
+}
+.badge-stato.completed {
+  background-color: rgba(16, 185, 129, 0.15);
+  border: 1px solid rgba(16, 185, 129, 0.3);
+  color: var(--accent-emerald);
+}
+
+/* Badge Tempi nel Modale */
+.modal-time-container {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin: 10px auto;
+  align-items: center;
+}
+
+.time-badge-actual {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  background-color: rgba(16, 185, 129, 0.12);
+  border: 1px solid rgba(16, 185, 129, 0.25);
+  color: var(--accent-emerald);
+  font-size: 11px;
+  font-weight: 700;
+  padding: 5px 12px;
+  border-radius: 12px;
+  width: fit-content;
+}
+
+.time-badge-estimated {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  background-color: rgba(100, 116, 139, 0.12);
+  border: 1px solid rgba(100, 116, 139, 0.25);
+  color: var(--text-secondary);
+  font-size: 11px;
+  font-weight: 600;
+  padding: 5px 12px;
+  border-radius: 12px;
+  width: fit-content;
+}
+
+/* Pulsanti speciali per avvio viaggio */
+.btn-start-trip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: linear-gradient(135deg, var(--accent-emerald) 0%, #059669 100%);
+  color: white;
+  border: none;
+  font-size: 12px;
+  font-weight: 700;
+  padding: 6px 12px;
+  border-radius: var(--border-radius-sm);
+  cursor: pointer;
+  transition: var(--transition-fast);
+  box-shadow: 0 4px 10px rgba(16, 185, 129, 0.2);
+}
+
+.btn-start-trip:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 6px 14px rgba(16, 185, 129, 0.3);
+}
+
+.btn-start-trip.active-recording {
+  background: linear-gradient(135deg, var(--accent-coral) 0%, #e11d48 100%);
+  box-shadow: 0 4px 10px rgba(244, 63, 94, 0.2);
+}
+
