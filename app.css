@@ -2073,3 +2073,127 @@ body.offline-active .view-section {
   box-shadow: 0 4px 10px rgba(244, 63, 94, 0.2);
 }
 
+/* ==========================================================================
+   STILI DI SUPPORTO MOBILE (RESPONSIVE OVERRIDES)
+   ========================================================================== */
+@media (max-width: 768px) {
+  header {
+    padding: 0 16px;
+    height: 70px;
+  }
+  
+  .logo {
+    font-size: 22px;
+  }
+  
+  body.offline-active .view-section {
+    padding-top: 120px;
+  }
+  
+  .view-section {
+    padding: 90px 16px 30px;
+  }
+  
+  .nav-btn {
+    padding: 8px 12px;
+    font-size: 13px;
+  }
+  
+  /* Nascondi il testo dei pulsanti di navigazione per risparmiare spazio su schermi piccoli */
+  .nav-btn span {
+    display: none;
+  }
+  
+  .user-profile-menu {
+    gap: 8px;
+  }
+  
+  .logout-btn {
+    padding: 8px 10px;
+    font-size: 11px;
+  }
+  
+  .logout-btn span {
+    display: none;
+  }
+  
+  /* Form di creazione */
+  .create-form-panel {
+    padding: 20px;
+  }
+  
+  .form-row {
+    grid-template-columns: 1fr;
+    gap: 12px;
+    margin-bottom: 12px;
+  }
+  
+  .transport-selector {
+    grid-template-columns: repeat(3, 1fr);
+  }
+  
+  /* Modale dettagli */
+  .modal-backdrop {
+    padding: 10px;
+  }
+  
+  .modal-wrapper {
+    max-height: 95vh;
+  }
+  
+  .modal-hero {
+    height: 240px;
+  }
+  
+  .modal-hero-title {
+    font-size: 26px;
+  }
+  
+  .modal-hero-overlay {
+    padding: 20px;
+  }
+  
+  .modal-body {
+    padding: 20px;
+  }
+  
+  .modal-close-btn {
+    top: 12px;
+    right: 12px;
+    width: 34px;
+    height: 34px;
+    font-size: 14px;
+  }
+  
+  #modal-share-btn {
+    right: 56px !important;
+    top: 12px !important;
+  }
+}
+
+@media (max-width: 480px) {
+  .logo span {
+    display: none; /* Mostra solo l'icona bussola sui telefoni piccolissimi */
+  }
+  
+  .transport-selector {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  
+  .login-card {
+    padding: 30px 20px;
+  }
+  
+  .login-logo {
+    font-size: 32px;
+  }
+  
+  .stopwatch-display {
+    font-size: 40px;
+  }
+  
+  .page-title {
+    font-size: 28px;
+  }
+}
+
